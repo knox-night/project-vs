@@ -12,7 +12,7 @@ if (!TOKEN) {
 }
 
 async function fetchNotifications() {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const response = await fetch(
     `https://api.github.com/notifications?since=${since}&all=true`,
@@ -35,13 +35,13 @@ async function fetchNotifications() {
 }
 
 async function main() {
-  console.log("Fetching your GitHub notifications from the last 24h...\n");
+    console.log("Fetching your GitHub notifications from the last 7 days...\n");
 
   try {
     const notifications = await fetchNotifications();
 
     if (notifications.length === 0) {
-      console.log("No new notifications in the last 24 hours.");
+      console.log("No new notifications in the last 7 days.");
       return;
     }
 
