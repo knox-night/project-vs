@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const { buildDigest } = require("./digest.js");
+const { saveUser } = require("./db.js");
 const app = express();
 
 const PORT = 3000;
@@ -51,7 +52,20 @@ app.get("/auth/callback", async (req, res) => {
       return res.send(`Error: ${tokenData.error_description}`);
     }
 
-    req.session.token = tokenData.access_token;
+        req.session.token = tokenData.access_token;
+
+    // Fetch the logged-in user's GitHub username
+    const userResponse = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        Accept: "application/vnd.github+json",
+      },
+    });
+    const userData = await userResponse.json();
+
+    req.session.username = userData.login;
+    saveUser(userData.login, tokenData.access_token);
+
     res.redirect("/");
   } catch (err) {
     console.error(err);
