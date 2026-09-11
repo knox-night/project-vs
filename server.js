@@ -1,8 +1,9 @@
 require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
+const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
-const { saveUser } = require("./db.js");
+const { saveUser, getUser } = require("./db.js");
 const app = express();
 
 const PORT = 3000;
@@ -12,6 +13,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
 }));
+app.use(cookieParser());
 
 app.get("/", (req, res) => {
   if (req.session.token) {
@@ -52,7 +54,7 @@ app.get("/auth/callback", async (req, res) => {
       return res.send(`Error: ${tokenData.error_description}`);
     }
 
-        req.session.token = tokenData.access_token;
+    req.session.token = tokenData.access_token;
 
     // Fetch the logged-in user's GitHub username
     const userResponse = await fetch("https://api.github.com/user", {
@@ -66,6 +68,12 @@ app.get("/auth/callback", async (req, res) => {
     req.session.username = userData.login;
     saveUser(userData.login, tokenData.access_token);
 
+    // Long-lived cookie so we can find this user again even if the session expires
+    res.cookie("username", userData.login, {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true,
+    });
+
     res.redirect("/");
   } catch (err) {
     console.error(err);
@@ -75,8 +83,22 @@ app.get("/auth/callback", async (req, res) => {
 
 // Step 3: Show the logged-in user's actual digest
 app.get("/dashboard", async (req, res) => {
+  // If session has a token, use it directly
   if (!req.session.token) {
-    return res.redirect("/auth/github");
+    // Session is gone — try to recover using the long-lived cookie
+    const username = req.cookies.username;
+    if (!username) {
+      return res.redirect("/auth/github");
+    }
+
+    const user = getUser(username);
+    if (!user) {
+      return res.redirect("/auth/github");
+    }
+
+    // Restore the session from the database
+    req.session.token = user.access_token;
+    req.session.username = user.github_username;
   }
 
   try {
@@ -101,11 +123,23 @@ app.get("/dashboard", async (req, res) => {
     const notifications = await response.json();
     const grouped = buildDigest(notifications);
 
-    let html = "<h1>Your GitHub Digest</h1>";
+    let html = `
+      <style>
+        body { font-family: -apple-system, Segoe UI, sans-serif; background: #0d1117; color: #c9d1d9; padding: 40px; max-width: 700px; margin: auto; }
+        h1 { color: #58a6ff; }
+        h2 { margin-top: 30px; padding-bottom: 6px; border-bottom: 1px solid #30363d; }
+        ul { list-style: none; padding: 0; }
+        li { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
+        li b { color: #e6edf3; }
+        li br { display: block; margin-bottom: 4px; }
+      </style>
+      <h1>Your GitHub Digest</h1>
+    `;
 
     ["HIGH", "MEDIUM", "LOW"].forEach((level) => {
       if (grouped[level].length === 0) return;
-      html += `<h2>${level} PRIORITY</h2><ul>`;
+      const colors = { HIGH: "#f85149", MEDIUM: "#d29922", LOW: "#3fb950" };
+      html += `<h2 style="color:${colors[level]}">${level} PRIORITY</h2><ul>`;
       grouped[level].forEach((item) => {
         html += `<li><b>${item.title}</b> (${item.repo})<br>Why: ${item.why}</li>`;
       });
