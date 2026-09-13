@@ -12,6 +12,16 @@ db.exec(`
   )
 `);
 
+// Add an email column if it doesn't exist yet (safe to run every time)
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN email TEXT`);
+} catch (err) {
+  // Ignore error if column already exists
+  if (!err.message.includes('duplicate column name')) {
+    throw err;
+  }
+}
+
 // Save a new user or update their token if they already exist
 function saveUser(githubUsername, accessToken) {
   const stmt = db.prepare(`
@@ -29,4 +39,16 @@ function getUser(githubUsername) {
   return stmt.get(githubUsername);
 }
 
-module.exports = { db, saveUser, getUser };
+// Save/update a user's email address
+function saveEmail(githubUsername, email) {
+  const stmt = db.prepare(`
+    UPDATE users SET email = ? WHERE github_username = ?
+  `);
+  stmt.run(email, githubUsername);
+}
+// Get every user who has saved an email address
+function getAllUsers() {
+  const stmt = db.prepare('SELECT * FROM users WHERE email IS NOT NULL');
+  return stmt.all();
+}
+module.exports = { db, saveUser, getUser, saveEmail, getAllUsers };

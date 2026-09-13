@@ -3,7 +3,9 @@ const express = require("express");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
-const { saveUser, getUser } = require("./db.js");
+const { saveUser, getUser, saveEmail, getAllUsers } = require("./db.js");
+const { sendDigestEmail } = require("./email.js");
+const cron = require("node-cron");
 const app = express();
 
 const PORT = 3000;
@@ -123,6 +125,9 @@ app.get("/dashboard", async (req, res) => {
     const notifications = await response.json();
     const grouped = buildDigest(notifications);
 
+       const user = getUser(req.session.username);
+    const currentEmail = user && user.email ? user.email : "";
+
     let html = `
       <style>
         body { font-family: -apple-system, Segoe UI, sans-serif; background: #0d1117; color: #c9d1d9; padding: 40px; max-width: 700px; margin: auto; }
@@ -132,8 +137,18 @@ app.get("/dashboard", async (req, res) => {
         li { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
         li b { color: #e6edf3; }
         li br { display: block; margin-bottom: 4px; }
+        .email-form { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .email-form input { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 8px; border-radius: 6px; margin-right: 8px; width: 250px; }
+        .email-form button { background: #238636; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
       </style>
       <h1>Your GitHub Digest</h1>
+            <div class="email-form">
+        <form action="/save-email" method="POST">
+          <input type="email" name="email" placeholder="your@email.com" value="${currentEmail}" required>
+          <button type="submit">Save email for daily digest</button>
+        </form>
+        ${req.query.saved ? '<p style="color:#3fb950;margin-top:10px;">✅ Email saved!</p>' : ''}
+      </div>
     `;
 
     ["HIGH", "MEDIUM", "LOW"].forEach((level) => {
@@ -156,6 +171,74 @@ app.get("/dashboard", async (req, res) => {
     res.send("Something went wrong fetching your digest.");
   }
 });
+app.post("/save-email", express.urlencoded({ extended: true }), (req, res) => {
+  if (!req.session.username) {
+    return res.redirect("/auth/github");
+  }
+  saveEmail(req.session.username, req.body.email);
+    res.redirect("/dashboard?saved=1");
+});
+
+app.get("/test-email", async (req, res) => {
+  if (!req.session.username) {
+    return res.redirect("/auth/github");
+  }
+
+  const user = getUser(req.session.username);
+  if (!user || !user.email) {
+    return res.send("No email saved for this user yet. Save one on /dashboard first.");
+  }
+
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const response = await fetch(
+      `https://api.github.com/notifications?since=${since}&all=true`,
+      {
+        headers: {
+          Authorization: `Bearer ${req.session.token}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    );
+    const notifications = await response.json();
+    const grouped = buildDigest(notifications);
+
+    const result = await sendDigestEmail(user.email, grouped);
+    res.send(`Email sent! Result: ${JSON.stringify(result)}`);
+  } catch (err) {
+    console.error(err);
+    res.send("Failed to send email: " + err.message);
+  }
+});
+async function sendAllDigests() {
+  const users = getAllUsers();
+  console.log(`Running daily digest job for ${users.length} user(s)...`);
+
+  for (const user of users) {
+    try {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const response = await fetch(
+        `https://api.github.com/notifications?since=${since}&all=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${user.access_token}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        }
+      );
+      const notifications = await response.json();
+      const grouped = buildDigest(notifications);
+
+      await sendDigestEmail(user.email, grouped);
+      console.log(`Sent digest to ${user.email}`);
+    } catch (err) {
+      console.error(`Failed to send digest to ${user.email}:`, err.message);
+    }
+  }
+}
+
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
