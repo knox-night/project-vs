@@ -18,10 +18,60 @@ app.use(session({
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
+  const styles = `
+    <style>
+      body {
+        font-family: -apple-system, "Segoe UI", sans-serif;
+        background: #10131a;
+        color: #e2e6ee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        text-align: center;
+      }
+      .card { max-width: 380px; padding: 0 24px; }
+      h1 {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 24px;
+        color: #4fd1c5;
+        letter-spacing: -0.02em;
+        margin: 0 0 10px;
+      }
+      p { color: #8b93a3; font-size: 14.5px; margin: 0 0 22px; }
+      a.button {
+        display: inline-block;
+        background: #4fd1c5;
+        color: #0b1512;
+        font-weight: 600;
+        text-decoration: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14.5px;
+      }
+    </style>
+  `;
+
   if (req.session.token) {
-    res.send('You are logged in! <a href="/dashboard">View your digest</a>');
+    res.send(`
+      ${styles}
+      <div class="card">
+        <h1>Your Digest</h1>
+        <p>You're logged in.</p>
+        <a class="button" href="/dashboard">View your digest</a>
+      </div>
+    `);
   } else {
-    res.send('GitHub Digest server is running! <a href="/auth/github">Login with GitHub</a>');
+    res.send(`
+      ${styles}
+      <div class="card">
+        <h1>Your Digest</h1>
+        <p>A daily summary of your GitHub activity, sorted by what actually matters.</p>
+        <a class="button" href="/auth/github">Log in with GitHub</a>
+      </div>
+    `);
   }
 });
 
