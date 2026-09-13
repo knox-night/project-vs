@@ -125,46 +125,152 @@ app.get("/dashboard", async (req, res) => {
     const notifications = await response.json();
     const grouped = buildDigest(notifications);
 
-       const user = getUser(req.session.username);
+           const user = getUser(req.session.username);
     const currentEmail = user && user.email ? user.email : "";
 
     let html = `
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
       <style>
-        body { font-family: -apple-system, Segoe UI, sans-serif; background: #0d1117; color: #c9d1d9; padding: 40px; max-width: 700px; margin: auto; }
-        h1 { color: #58a6ff; }
-        h2 { margin-top: 30px; padding-bottom: 6px; border-bottom: 1px solid #30363d; }
-        ul { list-style: none; padding: 0; }
-        li { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
-        li b { color: #e6edf3; }
-        li br { display: block; margin-bottom: 4px; }
-        .email-form { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
-        .email-form input { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 8px; border-radius: 6px; margin-right: 8px; width: 250px; }
-        .email-form button { background: #238636; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+        :root {
+          --bg: #10131a;
+          --surface: #171c25;
+          --surface-2: #1e2430;
+          --border: #2a3040;
+          --text: #e2e6ee;
+          --text-muted: #8b93a3;
+          --brand: #4fd1c5;
+          --high: #ef6461;
+          --medium: #e7b34c;
+          --low: #7fbf7f;
+        }
+        body {
+          font-family: -apple-system, "Segoe UI", sans-serif;
+          background: var(--bg);
+          color: var(--text);
+          padding: 56px 24px;
+          max-width: 640px;
+          margin: auto;
+          line-height: 1.55;
+        }
+        h1 {
+          font-family: "JetBrains Mono", monospace;
+          font-weight: 700;
+          font-size: 26px;
+          color: var(--brand);
+          letter-spacing: -0.02em;
+          margin: 0 0 4px;
+        }
+        .subtitle {
+          color: var(--text-muted);
+          font-size: 14px;
+          margin: 0 0 28px;
+        }
+        .email-form {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 18px 20px;
+          margin-bottom: 28px;
+        }
+        .email-form input {
+          background: var(--bg);
+          border: 1px solid var(--border);
+          color: var(--text);
+          padding: 9px 12px;
+          border-radius: 6px;
+          margin-right: 8px;
+          width: 240px;
+          font-size: 14px;
+        }
+        .email-form button {
+          background: var(--brand);
+          color: #0b1512;
+          border: none;
+          padding: 9px 16px;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .section-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          color: var(--text-muted);
+          margin: 28px 0 10px;
+        }
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-left: 3px solid var(--border);
+          border-radius: 8px;
+          padding: 14px 16px;
+          margin-bottom: 10px;
+        }
+        li b { color: var(--text); font-weight: 600; }
+        .repo-tag {
+          font-family: "JetBrains Mono", monospace;
+          font-size: 12px;
+          color: var(--text-muted);
+          background: var(--surface-2);
+          padding: 2px 6px;
+          border-radius: 4px;
+          margin-left: 6px;
+        }
+        .why {
+          display: block;
+          color: var(--text-muted);
+          font-size: 13.5px;
+          margin-top: 6px;
+        }
+        .empty-state {
+          border: 1px dashed var(--border);
+          border-radius: 10px;
+          padding: 24px;
+          color: var(--text-muted);
+          font-size: 14.5px;
+        }
       </style>
-      <h1>Your GitHub Digest</h1>
-            <div class="email-form">
+      <h1>Your Digest</h1>
+      <p class="subtitle">GitHub activity from the last 7 days</p>
+      <div class="email-form">
         <form action="/save-email" method="POST">
           <input type="email" name="email" placeholder="your@email.com" value="${currentEmail}" required>
           <button type="submit">Save email for daily digest</button>
         </form>
-        ${req.query.saved ? '<p style="color:#3fb950;margin-top:10px;">✅ Email saved!</p>' : ''}
+        ${req.query.saved ? '<p style="color:var(--low);margin-top:10px;font-size:14px;">Email saved</p>' : ''}
       </div>
     `;
 
+    const priorityMeta = {
+      HIGH: { label: "High priority", color: "var(--high)" },
+      MEDIUM: { label: "Medium priority", color: "var(--medium)" },
+      LOW: { label: "Low priority", color: "var(--low)" },
+    };
+
     ["HIGH", "MEDIUM", "LOW"].forEach((level) => {
       if (grouped[level].length === 0) return;
-      const colors = { HIGH: "#f85149", MEDIUM: "#d29922", LOW: "#3fb950" };
-      html += `<h2 style="color:${colors[level]}">${level} PRIORITY</h2><ul>`;
+      const meta = priorityMeta[level];
+      html += `<div class="section-label"><span class="dot" style="background:${meta.color}"></span>${meta.label}</div><ul>`;
       grouped[level].forEach((item) => {
-        html += `<li><b>${item.title}</b> (${item.repo})<br>Why: ${item.why}</li>`;
+        html += `<li style="border-left-color:${meta.color}">
+                   <b>${item.title}</b><span class="repo-tag">${item.repo}</span>
+                   <span class="why">${item.why}</span>
+                 </li>`;
       });
       html += "</ul>";
     });
 
     if (notifications.length === 0) {
-      html += "<p>No new notifications in the last 7 days.</p>";
+      html += '<div class="empty-state">No new activity in the last 7 days.</div>';
     }
-
     res.send(html);
   } catch (err) {
     console.error(err);
