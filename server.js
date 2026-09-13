@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
 
 // Step 1: Redirect user to GitHub's login page
 app.get("/auth/github", (req, res) => {
-  const redirectUri = "http://localhost:3000/auth/callback";
+  const redirectUri = "https://project-vs.onrender.com/auth/callback";
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${redirectUri}&scope=read:user,notifications`;
   res.redirect(githubAuthUrl);
 });
