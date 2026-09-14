@@ -20,36 +20,92 @@ app.use(cookieParser());
 app.get("/", (req, res) => {
   const styles = `
     <style>
+      * { box-sizing: border-box; }
       body {
         font-family: -apple-system, "Segoe UI", sans-serif;
         background: #10131a;
         color: #e2e6ee;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
         margin: 0;
+        line-height: 1.6;
+      }
+      .hero {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 80px 24px 48px;
         text-align: center;
       }
-      .card { max-width: 380px; padding: 0 24px; }
+      .badge {
+        display: inline-block;
+        font-size: 12.5px;
+        color: #4fd1c5;
+        border: 1px solid #2a3040;
+        background: #171c25;
+        padding: 4px 12px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        font-family: "JetBrains Mono", monospace;
+      }
       h1 {
         font-family: "JetBrains Mono", monospace;
         font-weight: 700;
-        font-size: 24px;
+        font-size: 34px;
         color: #4fd1c5;
         letter-spacing: -0.02em;
-        margin: 0 0 10px;
+        margin: 0 0 14px;
       }
-      p { color: #8b93a3; font-size: 14.5px; margin: 0 0 22px; }
+      .tagline {
+        color: #8b93a3;
+        font-size: 16.5px;
+        margin: 0 0 30px;
+        max-width: 460px;
+        margin-left: auto;
+        margin-right: auto;
+      }
       a.button {
         display: inline-block;
         background: #4fd1c5;
         color: #0b1512;
         font-weight: 600;
         text-decoration: none;
-        padding: 10px 20px;
+        padding: 12px 26px;
         border-radius: 6px;
-        font-size: 14.5px;
+        font-size: 15px;
+      }
+      .muted-note {
+        color: #565e6e;
+        font-size: 13px;
+        margin-top: 14px;
+      }
+      .features {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 20px 24px 70px;
+        display: grid;
+        gap: 14px;
+      }
+      .feature {
+        background: #171c25;
+        border: 1px solid #2a3040;
+        border-radius: 10px;
+        padding: 18px 20px;
+      }
+      .feature b {
+        color: #e2e6ee;
+        font-size: 15px;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .feature span {
+        color: #8b93a3;
+        font-size: 14px;
+      }
+      .pricing {
+        max-width: 640px;
+        margin: 0 auto 60px;
+        padding: 0 24px;
+        text-align: center;
+        color: #565e6e;
+        font-size: 13.5px;
       }
     </style>
   `;
@@ -57,24 +113,46 @@ app.get("/", (req, res) => {
   if (req.session.token) {
     res.send(`
       ${styles}
-      <div class="card">
+      <div class="hero">
         <h1>Your Digest</h1>
-        <p>You're logged in.</p>
+        <p class="tagline">You're logged in.</p>
         <a class="button" href="/dashboard">View your digest</a>
       </div>
     `);
   } else {
     res.send(`
       ${styles}
-      <div class="card">
-        <h1>Your Digest</h1>
-        <p>A daily summary of your GitHub activity, sorted by what actually matters.</p>
+      <div class="hero">
+        <div class="badge">GITHUB NOTIFICATIONS, SORTED</div>
+        <h1>Stop drowning in GitHub notifications</h1>
+        <p class="tagline">A daily digest that tells you what actually needs your attention today — not just everything that happened.</p>
         <a class="button" href="/auth/github">Log in with GitHub</a>
+        <div class="muted-note">Free forever for one account. No credit card required.</div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <b>⏳ Know what's waiting on you</b>
+          <span>Reviews and mentions that have sat untouched for 2+ days get flagged automatically — so nothing important slips through.</span>
+        </div>
+        <div class="feature">
+          <b>🎯 Sorted by real priority</b>
+          <span>Review requests and failed builds surface first. Passive activity — comments you're just watching — stays out of your way.</span>
+        </div>
+        <div class="feature">
+          <b>🔇 Mute the noise</b>
+          <span>One click to stop seeing a thread you don't care about, permanently.</span>
+        </div>
+        <div class="feature">
+          <b>📬 Delivered daily</b>
+          <span>Get your digest by email every morning, or check the dashboard whenever.</span>
+        </div>
+      </div>
+      <div class="pricing">
+        Free: 1 GitHub account, daily digest. Paid ($6/mo): multiple accounts, custom rules, 30-day history — coming soon.
       </div>
     `);
   }
 });
-
 // Step 1: Redirect user to GitHub's login page
 app.get("/auth/github", (req, res) => {
   const redirectUri = `${req.protocol}://${req.get("host")}/auth/callback`;
