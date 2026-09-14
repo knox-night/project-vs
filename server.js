@@ -77,7 +77,7 @@ app.get("/", (req, res) => {
 
 // Step 1: Redirect user to GitHub's login page
 app.get("/auth/github", (req, res) => {
-  const redirectUri = "https://project-vs.onrender.com/auth/callback";
+  const redirectUri = `${req.protocol}://${req.get("host")}/auth/callback`;
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${redirectUri}&scope=read:user,notifications`;
   res.redirect(githubAuthUrl);
 });
@@ -172,7 +172,7 @@ app.get("/dashboard", async (req, res) => {
       throw new Error(`GitHub API error ${response.status}: ${errorText}`);
     }
 
-        const notifications = await response.json();
+    const notifications = await response.json();
     const mutedIds = getMutedIds(req.session.username);
     const grouped = await buildDigest(notifications, mutedIds);
 
@@ -310,7 +310,7 @@ app.get("/dashboard", async (req, res) => {
       if (grouped[level].length === 0) return;
       const meta = priorityMeta[level];
       html += `<div class="section-label"><span class="dot" style="background:${meta.color}"></span>${meta.label}</div><ul>`;
-                grouped[level].forEach((item) => {
+      grouped[level].forEach((item) => {
         const staleBadge = item.stale
           ? `<span style="background:var(--high);color:#1a0f0f;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin-left:6px;">⏳ Waiting ${item.daysOld}d</span>`
           : "";
@@ -335,12 +335,13 @@ app.get("/dashboard", async (req, res) => {
     res.send("Something went wrong fetching your digest.");
   }
 });
+
 app.post("/save-email", express.urlencoded({ extended: true }), (req, res) => {
   if (!req.session.username) {
     return res.redirect("/auth/github");
   }
   saveEmail(req.session.username, req.body.email);
-    res.redirect("/dashboard?saved=1");
+  res.redirect("/dashboard?saved=1");
 });
 
 app.post("/mute", express.urlencoded({ extended: true }), (req, res) => {
@@ -350,6 +351,7 @@ app.post("/mute", express.urlencoded({ extended: true }), (req, res) => {
   muteNotification(req.session.username, req.body.id);
   res.redirect("/dashboard");
 });
+
 app.get("/test-email", async (req, res) => {
   if (!req.session.username) {
     return res.redirect("/auth/github");
@@ -372,7 +374,7 @@ app.get("/test-email", async (req, res) => {
         },
       }
     );
-        const notifications = await response.json();
+    const notifications = await response.json();
     const mutedIds = getMutedIds(req.session.username);
     const grouped = await buildDigest(notifications, mutedIds);
 
@@ -383,6 +385,7 @@ app.get("/test-email", async (req, res) => {
     res.send("Failed to send email: " + err.message);
   }
 });
+
 async function sendAllDigests() {
   const users = getAllUsers();
   console.log(`Running daily digest job for ${users.length} user(s)...`);
@@ -400,7 +403,7 @@ async function sendAllDigests() {
           },
         }
       );
-            const notifications = await response.json();
+      const notifications = await response.json();
       const mutedIds = getMutedIds(user.github_username);
       const grouped = await buildDigest(notifications, mutedIds);
 
@@ -412,6 +415,10 @@ async function sendAllDigests() {
   }
 }
 
+// Run the daily digest job every day at 8:00 AM
+cron.schedule("0 8 * * *", () => {
+  sendAllDigests();
+});
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
