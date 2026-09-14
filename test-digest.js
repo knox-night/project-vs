@@ -1,6 +1,6 @@
 // test-digest.js
 // Testing digest.js with fake sample notifications (no real GitHub API needed)
-
+require('dotenv').config();
 const { buildDigest, printDigest } = require("./digest.js");
 
 const fakeNotifications = [
@@ -30,6 +30,7 @@ const fakeNotifications = [
     repository: { full_name: "old-project" },
   },
 ];
-
-const grouped = buildDigest(fakeNotifications);
-printDigest(grouped);
+(async () => {
+  const grouped = await buildDigest(fakeNotifications);
+  printDigest(grouped);
+})();

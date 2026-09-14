@@ -3,7 +3,7 @@ const express = require("express");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
-const { saveUser, getUser, saveEmail, getAllUsers } = require("./db.js");
+const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds } = require("./db.js");
 const { sendDigestEmail } = require("./email.js");
 const cron = require("node-cron");
 const app = express();
@@ -172,10 +172,11 @@ app.get("/dashboard", async (req, res) => {
       throw new Error(`GitHub API error ${response.status}: ${errorText}`);
     }
 
-    const notifications = await response.json();
-    const grouped = buildDigest(notifications);
+        const notifications = await response.json();
+    const mutedIds = getMutedIds(req.session.username);
+    const grouped = await buildDigest(notifications, mutedIds);
 
-           const user = getUser(req.session.username);
+    const user = getUser(req.session.username);
     const currentEmail = user && user.email ? user.email : "";
 
     let html = `
@@ -309,10 +310,17 @@ app.get("/dashboard", async (req, res) => {
       if (grouped[level].length === 0) return;
       const meta = priorityMeta[level];
       html += `<div class="section-label"><span class="dot" style="background:${meta.color}"></span>${meta.label}</div><ul>`;
-      grouped[level].forEach((item) => {
+                grouped[level].forEach((item) => {
+        const staleBadge = item.stale
+          ? `<span style="background:var(--high);color:#1a0f0f;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin-left:6px;">⏳ Waiting ${item.daysOld}d</span>`
+          : "";
         html += `<li style="border-left-color:${meta.color}">
-                   <b>${item.title}</b><span class="repo-tag">${item.repo}</span>
+                   <b>${item.title}</b><span class="repo-tag">${item.repo}</span>${staleBadge}
                    <span class="why">${item.why}</span>
+                   <form action="/mute" method="POST" style="margin-top:8px;">
+                     <input type="hidden" name="id" value="${item.id}">
+                     <button type="submit" style="background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border);padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;">Mute</button>
+                   </form>
                  </li>`;
       });
       html += "</ul>";
@@ -335,6 +343,13 @@ app.post("/save-email", express.urlencoded({ extended: true }), (req, res) => {
     res.redirect("/dashboard?saved=1");
 });
 
+app.post("/mute", express.urlencoded({ extended: true }), (req, res) => {
+  if (!req.session.username) {
+    return res.redirect("/auth/github");
+  }
+  muteNotification(req.session.username, req.body.id);
+  res.redirect("/dashboard");
+});
 app.get("/test-email", async (req, res) => {
   if (!req.session.username) {
     return res.redirect("/auth/github");
@@ -357,8 +372,9 @@ app.get("/test-email", async (req, res) => {
         },
       }
     );
-    const notifications = await response.json();
-    const grouped = buildDigest(notifications);
+        const notifications = await response.json();
+    const mutedIds = getMutedIds(req.session.username);
+    const grouped = await buildDigest(notifications, mutedIds);
 
     const result = await sendDigestEmail(user.email, grouped);
     res.send(`Email sent! Result: ${JSON.stringify(result)}`);
@@ -384,8 +400,9 @@ async function sendAllDigests() {
           },
         }
       );
-      const notifications = await response.json();
-      const grouped = buildDigest(notifications);
+            const notifications = await response.json();
+      const mutedIds = getMutedIds(user.github_username);
+      const grouped = await buildDigest(notifications, mutedIds);
 
       await sendDigestEmail(user.email, grouped);
       console.log(`Sent digest to ${user.email}`);

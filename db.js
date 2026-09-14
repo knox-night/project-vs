@@ -22,6 +22,16 @@ try {
   }
 }
 
+// Create muted_notifications table if it doesn't already exist
+db.exec(`
+  CREATE TABLE IF NOT EXISTS muted_notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    github_username TEXT NOT NULL,
+    notification_id TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(github_username, notification_id)
+  )
+`); 
 // Save a new user or update their token if they already exist
 function saveUser(githubUsername, accessToken) {
   const stmt = db.prepare(`
@@ -51,4 +61,19 @@ function getAllUsers() {
   const stmt = db.prepare('SELECT * FROM users WHERE email IS NOT NULL');
   return stmt.all();
 }
-module.exports = { db, saveUser, getUser, saveEmail, getAllUsers };
+// Mute a notification thread for a user
+function muteNotification(githubUsername, notificationId) {
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO muted_notifications (github_username, notification_id)
+    VALUES (?, ?)
+  `);
+  stmt.run(githubUsername, notificationId);
+}
+
+// Get all muted notification IDs for a user
+function getMutedIds(githubUsername) {
+  const stmt = db.prepare('SELECT notification_id FROM muted_notifications WHERE github_username = ?');
+  return stmt.all(githubUsername).map(row => row.notification_id);
+}
+
+module.exports = { db, saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds };
