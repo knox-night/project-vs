@@ -482,8 +482,15 @@ app.get("/dashboard-data", async (req, res) => {
       html += "</ul>";
     });
 
-    if (notifications.length === 0) {
-      html += '<div class="empty-state">No new activity in the last 7 days.</div>';
+      if (true) {
+      html += `
+        <div class="empty-state">
+          <b style="color:var(--text);display:block;margin-bottom:6px;font-size:15px;">No new activity in the last 7 days</b>
+          <span>Once you get GitHub notifications — review requests, mentions, comments, failed builds — they'll show up here sorted by what actually needs your attention, with a plain-English summary of what's being asked of you.</span>
+          <br><br>
+          <span>${currentEmail ? "You're set up to get this by email each morning too." : "Save your email above and you'll get this delivered every morning, no need to check back."}</span>
+        </div>
+      `;
     }
 
     html += "</div>";
