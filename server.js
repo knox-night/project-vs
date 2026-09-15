@@ -234,8 +234,8 @@ app.get("/dashboard", async (req, res) => {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const response = await fetch(
-  `https://api.github.com/notificationsXYZ?since=${since}&all=true`,
+   const response = await fetch(
+  `https://api.github.com/notifications?since=${since}&all=true`,
       {
         headers: {
           Authorization: `Bearer ${req.session.token}`,
