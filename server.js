@@ -109,17 +109,38 @@ app.get("/", (req, res) => {
       }
     </style>
   `;
-
   if (req.session.token) {
     res.send(`
       ${styles}
       <div class="hero">
+        <div class="badge">GITHUB NOTIFICATIONS, SORTED</div>
         <h1>Your Digest</h1>
-        <p class="tagline">You're logged in.</p>
+        <p class="tagline">You're logged in and ready to go.</p>
         <a class="button" href="/dashboard">View your digest</a>
+        <div class="muted-note">Head to your dashboard to see what needs attention today.</div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <b>⏳ Know what's waiting on you</b>
+          <span>Reviews and mentions that have sat untouched for 2+ days get flagged automatically.</span>
+        </div>
+        <div class="feature">
+          <b>🎯 Sorted by real priority</b>
+          <span>Review requests and failed builds surface first — passive activity stays out of your way.</span>
+        </div>
+        <div class="feature">
+          <b>🔇 Mute the noise</b>
+          <span>One click to stop seeing a thread you don't care about, permanently.</span>
+        </div>
+        <div class="feature">
+          <b>📬 Delivered daily</b>
+          <span>Save your email on the dashboard to get your digest every morning.</span>
+        </div>
       </div>
     `);
   } else {
+  
+  
     res.send(`
       ${styles}
       <div class="hero">
