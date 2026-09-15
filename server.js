@@ -3,6 +3,7 @@ const express = require("express");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
+const { sendDigestEmail } = require("./email.js");
 const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds, unmuteAll } = require("./db.js");
 const cron = require("node-cron");
 const app = express();
@@ -244,6 +245,13 @@ app.get("/dashboard", async (req, res) => {
       }
     );
 
+    if (response.status === 401) {
+      // Token is invalid/expired — clear the stale session and cookie, send them to log in again
+      req.session.destroy(() => {});
+      res.clearCookie("username");
+      return res.redirect("/auth/github");
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`GitHub API error ${response.status}: ${errorText}`);
@@ -418,7 +426,12 @@ app.get("/dashboard", async (req, res) => {
     res.send(html);
   } catch (err) {
     console.error(err);
-    res.send("Something went wrong fetching your digest.");
+    res.send(`
+      <div style="font-family:-apple-system,sans-serif;background:#10131a;color:#e2e6ee;padding:60px 24px;text-align:center;">
+        <p style="font-size:16px;">Something went wrong fetching your digest.</p>
+        <a href="/dashboard" style="color:#4fd1c5;">Try again</a>
+      </div>
+    `);
   }
 });
 
