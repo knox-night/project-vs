@@ -75,5 +75,10 @@ function getMutedIds(githubUsername) {
   const stmt = db.prepare('SELECT notification_id FROM muted_notifications WHERE github_username = ?');
   return stmt.all(githubUsername).map(row => row.notification_id);
 }
+// Remove ALL muted notifications for a user (unmute all)
+function unmuteAll(githubUsername) {
+  const stmt = db.prepare('DELETE FROM muted_notifications WHERE github_username = ?');
+  stmt.run(githubUsername);
+}
 
-module.exports = { db, saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds };
+module.exports = { db, saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds, unmuteAll };

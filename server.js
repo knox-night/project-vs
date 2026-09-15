@@ -3,8 +3,7 @@ const express = require("express");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
-const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds } = require("./db.js");
-const { sendDigestEmail } = require("./email.js");
+const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds, unmuteAll } = require("./db.js");
 const cron = require("node-cron");
 const app = express();
 app.set("trust proxy", 1);
@@ -254,8 +253,9 @@ app.get("/dashboard", async (req, res) => {
     const mutedIds = getMutedIds(req.session.username);
     const grouped = await buildDigest(notifications, mutedIds);
 
-    const user = getUser(req.session.username);
+       const user = getUser(req.session.username);
     const currentEmail = user && user.email ? user.email : "";
+    const mutedCount = mutedIds.length;
 
     let html = `
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -374,8 +374,16 @@ app.get("/dashboard", async (req, res) => {
           <input type="email" name="email" placeholder="your@email.com" value="${currentEmail}" required>
           <button type="submit">Save email for daily digest</button>
         </form>
-        ${req.query.saved ? '<p style="color:var(--low);margin-top:10px;font-size:14px;">Email saved</p>' : ''}
+                ${req.query.saved ? '<p style="color:var(--low);margin-top:10px;font-size:14px;">Email saved</p>' : ''}
       </div>
+      ${mutedCount > 0 ? `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:20px;font-size:13.5px;color:var(--text-muted);">
+        <span>${mutedCount} thread${mutedCount === 1 ? '' : 's'} muted</span>
+        <form action="/unmute-all" method="POST">
+          <button type="submit" style="background:none;color:var(--brand);border:none;font-size:13px;cursor:pointer;text-decoration:underline;">Unmute all</button>
+        </form>
+      </div>
+      ` : ''}
     `;
 
     const priorityMeta = {
@@ -427,6 +435,13 @@ app.post("/mute", express.urlencoded({ extended: true }), (req, res) => {
     return res.redirect("/auth/github");
   }
   muteNotification(req.session.username, req.body.id);
+  res.redirect("/dashboard");
+});
+app.post("/unmute-all", (req, res) => {
+  if (!req.session.username) {
+    return res.redirect("/auth/github");
+  }
+  unmuteAll(req.session.username);
   res.redirect("/dashboard");
 });
 
