@@ -437,8 +437,13 @@ app.get("/dashboard-data", async (req, res) => {
 
     let html = `
       <div id="content">
-        <h1>Your Digest</h1>
-        <p class="subtitle">GitHub activity from the last 7 days</p>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <h1>Your Digest</h1>
+            <p class="subtitle">GitHub activity from the last 7 days</p>
+          </div>
+          <a href="/logout" style="color:var(--text-muted);font-size:13px;text-decoration:underline;margin-top:6px;">Log out</a>
+        </div>
         <div class="email-form">
           <form action="/save-email" method="POST">
             <input type="email" name="email" placeholder="your@email.com" value="${currentEmail}" required>
@@ -527,6 +532,12 @@ app.post("/unmute-all", (req, res) => {
   }
   unmuteAll(req.session.username);
   res.redirect("/dashboard");
+});
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("username");
+    res.redirect("/");
+  });
 });
 
 app.get("/test-email", async (req, res) => {
