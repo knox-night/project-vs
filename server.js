@@ -16,8 +16,8 @@ app.use(session({
   saveUninitialized: false,
 }));
 app.use(cookieParser());
-
 app.get("/", (req, res) => {
+  res.set("Cache-Control", "no-store");
   const styles = `
     <style>
       * { box-sizing: border-box; }
@@ -534,8 +534,10 @@ app.post("/unmute-all", (req, res) => {
   res.redirect("/dashboard");
 });
 app.get("/logout", (req, res) => {
-  req.session.destroy(() => {
+  req.session.destroy((err) => {
+    if (err) console.error("Logout error:", err);
     res.clearCookie("username");
+    res.set("Cache-Control", "no-store");
     res.redirect("/");
   });
 });
