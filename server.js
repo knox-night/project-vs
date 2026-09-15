@@ -18,7 +18,8 @@ app.use(session({
 app.use(cookieParser());
 app.get("/", (req, res) => {
   res.set("Cache-Control", "no-store");
-  const styles = `
+   const styles = `
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       * { box-sizing: border-box; }
       body {
@@ -255,6 +256,7 @@ function ensureSession(req, res) {
 }
 
 const DASHBOARD_STYLES = `
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -298,14 +300,19 @@ const DASHBOARD_STYLES = `
       padding: 18px 20px;
       margin-bottom: 28px;
     }
+       .email-form form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
     .email-form input {
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 9px 12px;
       border-radius: 6px;
-      margin-right: 8px;
-      width: 240px;
+      flex: 1 1 200px;
+      min-width: 0;
       font-size: 14px;
     }
     .email-form button {
