@@ -482,7 +482,7 @@ app.get("/dashboard-data", async (req, res) => {
       html += "</ul>";
     });
 
-      if (true) {
+      if (notifications.length === 0) {
       html += `
         <div class="empty-state">
           <b style="color:var(--text);display:block;margin-bottom:6px;font-size:15px;">No new activity in the last 7 days</b>
