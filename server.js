@@ -1,5 +1,16 @@
 require("dotenv").config();
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 const express = require("express");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
@@ -7,13 +18,33 @@ const { sendDigestEmail } = require("./email.js");
 const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds, unmuteAll } = require("./db.js");
 const cron = require("node-cron");
 const app = express();
+app.use(helmet());
 app.set("trust proxy", 1);
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // 20 requests per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const dataLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const PORT = 3000;
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  },
 }));
 app.use(cookieParser());
 app.get("/", (req, res) => {
@@ -176,14 +207,14 @@ app.get("/", (req, res) => {
   }
 });
 // Step 1: Redirect user to GitHub's login page
-app.get("/auth/github", (req, res) => {
+app.get("/auth/github", authLimiter, (req, res) => {
   const redirectUri = `${req.protocol}://${req.get("host")}/auth/callback`;
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${redirectUri}&scope=read:user,notifications`;
   res.redirect(githubAuthUrl);
 });
 
 // Step 2: GitHub redirects back here with a "code"
-app.get("/auth/callback", async (req, res) => {
+app.get("/auth/callback", authLimiter, async (req, res) => {
   const code = req.query.code;
 
   try {
@@ -426,7 +457,7 @@ app.get("/dashboard", (req, res) => {
 });
 
 // Step 3b: Does the actual GitHub fetch + AI summarizing + returns the digest HTML
-app.get("/dashboard-data", async (req, res) => {
+app.get("/dashboard-data", dataLimiter, async (req, res) => {
   if (!ensureSession(req, res)) return;
 
   try {
@@ -459,8 +490,8 @@ app.get("/dashboard-data", async (req, res) => {
     const mutedIds = getMutedIds(req.session.username);
     const grouped = await buildDigest(notifications, mutedIds);
 
-    const user = getUser(req.session.username);
-    const currentEmail = user && user.email ? user.email : "";
+       const user = getUser(req.session.username);
+    const currentEmail = escapeHtml(user && user.email ? user.email : "");
     const mutedCount = mutedIds.length;
 
     let html = `
@@ -503,9 +534,9 @@ app.get("/dashboard-data", async (req, res) => {
         const staleBadge = item.stale
           ? `<span style="background:var(--high);color:#1a0f0f;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin-left:6px;">⏳ Waiting ${item.daysOld}d</span>`
           : "";
-        html += `<li style="border-left-color:${meta.color}">
-                   <b>${item.title}</b><span class="repo-tag">${item.repo}</span>${staleBadge}
-                   <span class="why">${item.why}</span>
+               html += `<li style="border-left-color:${meta.color}">
+                   <b>${escapeHtml(item.title)}</b><span class="repo-tag">${escapeHtml(item.repo)}</span>${staleBadge}
+                   <span class="why">${escapeHtml(item.why)}</span>
                    <form action="/mute" method="POST" style="margin-top:8px;">
                      <input type="hidden" name="id" value="${item.id}">
                      <button type="submit" style="background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border);padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;">Mute</button>
