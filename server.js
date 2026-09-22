@@ -18,7 +18,9 @@ const { sendDigestEmail } = require("./email.js");
 const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds, unmuteAll } = require("./db.js");
 const cron = require("node-cron");
 const app = express();
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 app.set("trust proxy", 1);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
