@@ -533,8 +533,7 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
         </div>
         <div class="email-form">
           <p style="margin:0 0 10px;color:var(--text-muted);font-size:13.5px;">Daily email digest is coming soon. Save your email now and it will switch on when it's ready.</p>
-          <p style="margin:0 0 10px;color:var(--text-muted);font-size:13.5px;">Daily email digest is coming soon. Save your email now and it will switch on when it's ready.</p>
-          <form action="/save-email" method="POST">
+          
             <input type="email" name="email" placeholder="your@email.com" value="${currentEmail}" required>
             <button type="submit">Save email</button>
           </form>
