@@ -183,7 +183,7 @@ app.get("/", (req, res) => {
         </div>
         <div class="feature">
           <b>📬 Delivered daily</b>
-          <span>Save your email on the dashboard to get your digest every morning.</span>
+          <span>For now, check your dashboard anytime. Daily email delivery is on the way.</span>
         </div>
       </div>
     `);
@@ -195,7 +195,8 @@ app.get("/", (req, res) => {
         <h1>Stop drowning in GitHub notifications</h1>
         <p class="tagline">A daily digest that tells you what actually needs your attention today — not just everything that happened.</p>
         <a class="button" href="/auth/github">Log in with GitHub</a>
-        <div class="muted-note">Free forever for one account. No credit card required.</div>
+        <div class="muted-note">Free while in early access. No credit card required.</div>
+        <div class="muted-note">Only asks for access to your notifications and basic profile — never your code.</div>
       </div>
       <div class="features">
         <div class="feature">
@@ -212,11 +213,11 @@ app.get("/", (req, res) => {
         </div>
         <div class="feature">
           <b>📬 Delivered daily</b>
-          <span>Get your digest by email every morning, or check the dashboard whenever.</span>
+          <span>For now, check your dashboard anytime. Daily email delivery is on the way.</span>
         </div>
       </div>
       <div class="pricing">
-        Free: 1 GitHub account, daily digest. Paid ($6/mo): multiple accounts, custom rules, 30-day history — coming soon.
+        Early access: everything is free right now. This is a new project built by one person, so expect rough edges. Feedback is welcome.
       </div>
     `);
   }
@@ -531,9 +532,11 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
           <a href="/logout" style="color:var(--text-muted);font-size:13px;text-decoration:underline;margin-top:6px;">Log out</a>
         </div>
         <div class="email-form">
+          <p style="margin:0 0 10px;color:var(--text-muted);font-size:13.5px;">Daily email digest is coming soon. Save your email now and it will switch on when it's ready.</p>
+          <p style="margin:0 0 10px;color:var(--text-muted);font-size:13.5px;">Daily email digest is coming soon. Save your email now and it will switch on when it's ready.</p>
           <form action="/save-email" method="POST">
             <input type="email" name="email" placeholder="your@email.com" value="${currentEmail}" required>
-            <button type="submit">Save email for daily digest</button>
+            <button type="submit">Save email</button>
           </form>
           ${req.query.saved ? '<p style="color:var(--low);margin-top:10px;font-size:14px;">Email saved</p>' : ''}
         </div>
@@ -577,9 +580,9 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
       html += `
         <div class="empty-state">
           <b style="color:var(--text);display:block;margin-bottom:6px;font-size:15px;">No new activity in the last 7 days</b>
-          <span>Once you get GitHub notifications — review requests, mentions, comments, failed builds — they'll show up here sorted by what actually needs your attention, with a plain-English summary of what's being asked of you.</span>
+          <span>Once you get GitHub notifications — review requests, mentions, comments, failed builds — they'll show up here sorted by what actually needs your attention.</span>
           <br><br>
-          <span>${currentEmail ? "You're set up to get this by email each morning too." : "Save your email above and you'll get this delivered every morning, no need to check back."}</span>
+          <span>Daily email delivery is coming soon.</span>
         </div>
       `;
     }
