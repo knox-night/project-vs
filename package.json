@@ -1,7 +1,14 @@
 {
+  "name": "project-vs",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "digest": "node fetch-notifications.js",
+    "test": "node test-digest.js"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
-    "better-sqlite3": "^13.0.3",
+    "@libsql/client": "^0.18.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

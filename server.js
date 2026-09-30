@@ -1,4 +1,13 @@
 require("dotenv").config();
+const crypto = require("crypto");
+
+for (const name of ["SESSION_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY"]) {
+  if (!process.env[name]) {
+    console.error(`Missing required env var: ${name}`);
+    process.exit(1);
+  }
+}
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -14,6 +23,7 @@ const rateLimit = require("express-rate-limit");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
+const { fetchNotifications } = require("./github.js");
 const { sendDigestEmail } = require("./email.js");
 const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds, unmuteAll } = require("./db.js");
 const cron = require("node-cron");
@@ -35,7 +45,12 @@ const dataLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // Render supplies PORT
+
+// Fixed base URL (not the Host header). Must match the callback URL in your GitHub OAuth app.
+const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
+// Secure cookies only work over https (Render). On your laptop (http) they must be off.
+const USE_SECURE_COOKIES = BASE_URL.startsWith("https://");
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -43,15 +58,15 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: true,
+    secure: USE_SECURE_COOKIES,
     sameSite: "lax",
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   },
 }));
-app.use(cookieParser());
+app.use(cookieParser(process.env.SESSION_SECRET));
 app.get("/", (req, res) => {
   res.set("Cache-Control", "no-store");
-   const styles = `
+  const styles = `
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       * { box-sizing: border-box; }
@@ -173,8 +188,6 @@ app.get("/", (req, res) => {
       </div>
     `);
   } else {
-  
-  
     res.send(`
       ${styles}
       <div class="hero">
@@ -208,16 +221,34 @@ app.get("/", (req, res) => {
     `);
   }
 });
+
 // Step 1: Redirect user to GitHub's login page
 app.get("/auth/github", authLimiter, (req, res) => {
-  const redirectUri = `${req.protocol}://${req.get("host")}/auth/callback`;
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${redirectUri}&scope=read:user,notifications`;
-  res.redirect(githubAuthUrl);
+  // Random "state" ties the callback to this browser, blocking login CSRF
+  const state = crypto.randomBytes(16).toString("hex");
+  req.session.oauthState = state;
+
+  const params = new URLSearchParams({
+    client_id: process.env.GITHUB_CLIENT_ID,
+    redirect_uri: `${BASE_URL}/auth/callback`,
+    scope: "read:user notifications",
+    state,
+  });
+
+  req.session.save(() => {
+    res.redirect(`https://github.com/login/oauth/authorize?${params}`);
+  });
 });
 
 // Step 2: GitHub redirects back here with a "code"
 app.get("/auth/callback", authLimiter, async (req, res) => {
-  const code = req.query.code;
+  const { code, state } = req.query;
+  const expectedState = req.session.oauthState;
+  delete req.session.oauthState;
+
+  if (typeof code !== "string" || typeof state !== "string" || !expectedState || state !== expectedState) {
+    return res.status(400).send('Login failed: invalid or expired login request. <a href="/auth/github">Try again</a>');
+  }
 
   try {
     const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
@@ -236,7 +267,7 @@ app.get("/auth/callback", authLimiter, async (req, res) => {
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      return res.send(`Error: ${tokenData.error_description}`);
+      return res.status(400).send(`Error: ${escapeHtml(tokenData.error_description)}`);
     }
 
     req.session.token = tokenData.access_token;
@@ -250,13 +281,20 @@ app.get("/auth/callback", authLimiter, async (req, res) => {
     });
     const userData = await userResponse.json();
 
+    if (!userData.login) {
+      throw new Error("Could not read GitHub username");
+    }
+
     req.session.username = userData.login;
-    saveUser(userData.login, tokenData.access_token);
+    await saveUser(userData.login, tokenData.access_token);
 
     // Long-lived cookie so we can find this user again even if the session expires
     res.cookie("username", userData.login, {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       httpOnly: true,
+      secure: USE_SECURE_COOKIES,
+      sameSite: "lax",
+      signed: true,
     });
 
     res.redirect("/");
@@ -268,16 +306,16 @@ app.get("/auth/callback", authLimiter, async (req, res) => {
 
 // Shared: make sure a session is present, recovering from the long-lived cookie if needed.
 // Returns true if the request can proceed, or false after already sending a redirect.
-function ensureSession(req, res) {
+async function ensureSession(req, res) {
   if (req.session.token) return true;
 
-  const username = req.cookies.username;
+  const username = req.signedCookies.username; // signed, so it cannot be forged
   if (!username) {
     res.redirect("/auth/github");
     return false;
   }
 
-  const user = getUser(username);
+  const user = await getUser(username);
   if (!user) {
     res.redirect("/auth/github");
     return false;
@@ -333,7 +371,7 @@ const DASHBOARD_STYLES = `
       padding: 18px 20px;
       margin-bottom: 28px;
     }
-       .email-form form {
+    .email-form form {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -427,8 +465,8 @@ const DASHBOARD_STYLES = `
 `;
 
 // Step 3a: Serve a lightweight page immediately, which then fetches the real digest in the background
-app.get("/dashboard", (req, res) => {
-  if (!ensureSession(req, res)) return;
+app.get("/dashboard", async (req, res) => {
+  if (!(await ensureSession(req, res))) return;
 
   res.send(`
     ${DASHBOARD_STYLES}
@@ -460,45 +498,31 @@ app.get("/dashboard", (req, res) => {
 
 // Step 3b: Does the actual GitHub fetch + AI summarizing + returns the digest HTML
 app.get("/dashboard-data", dataLimiter, async (req, res) => {
-  if (!ensureSession(req, res)) return;
+  if (!(await ensureSession(req, res))) return;
 
   try {
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-    const response = await fetch(
-      `https://api.github.com/notifications?since=${since}&all=true`,
-      {
-        headers: {
-          Authorization: `Bearer ${req.session.token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
+    let notifications;
+    try {
+      notifications = await fetchNotifications(req.session.token);
+    } catch (err) {
+      if (err.status === 401) {
+        // Token is invalid/expired: clear the stale session and cookie, send them to log in again
+        req.session.destroy(() => {});
+        res.clearCookie("username");
+        return res.redirect("/auth/github");
       }
-    );
-
-    if (response.status === 401) {
-      // Token is invalid/expired — clear the stale session and cookie, send them to log in again
-      req.session.destroy(() => {});
-      res.clearCookie("username");
-      return res.redirect("/auth/github");
+      throw err;
     }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`GitHub API error ${response.status}: ${errorText}`);
-    }
-
-    const notifications = await response.json();
-    const mutedIds = getMutedIds(req.session.username);
+    const mutedIds = await getMutedIds(req.session.username);
     const grouped = await buildDigest(notifications, mutedIds);
 
-       const user = getUser(req.session.username);
+    const user = await getUser(req.session.username);
     const currentEmail = escapeHtml(user && user.email ? user.email : "");
     const mutedCount = mutedIds.length;
 
     let html = `
       <div id="content">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div>
             <h1>Your Digest</h1>
             <p class="subtitle">GitHub activity from the last 7 days</p>
@@ -536,7 +560,7 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
         const staleBadge = item.stale
           ? `<span style="background:var(--high);color:#1a0f0f;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin-left:6px;">⏳ Waiting ${item.daysOld}d</span>`
           : "";
-               html += `<li style="border-left-color:${meta.color}">
+        html += `<li style="border-left-color:${meta.color}">
                    <b>${escapeHtml(item.title)}</b><span class="repo-tag">${escapeHtml(item.repo)}</span>${staleBadge}
                    <span class="why">${escapeHtml(item.why)}</span>
                    <form action="/mute" method="POST" style="margin-top:8px;">
@@ -548,7 +572,7 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
       html += "</ul>";
     });
 
-      if (notifications.length === 0) {
+    if (notifications.length === 0) {
       html += `
         <div class="empty-state">
           <b style="color:var(--text);display:block;margin-bottom:6px;font-size:15px;">No new activity in the last 7 days</b>
@@ -572,28 +596,38 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
   }
 });
 
-app.post("/save-email", express.urlencoded({ extended: true }), (req, res) => {
+app.post("/save-email", express.urlencoded({ extended: true }), async (req, res) => {
   if (!req.session.username) {
     return res.redirect("/auth/github");
   }
-  saveEmail(req.session.username, req.body.email);
+  const email = String(req.body.email || "").trim();
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.redirect("/dashboard");
+  }
+  await saveEmail(req.session.username, email);
   res.redirect("/dashboard?saved=1");
 });
 
-app.post("/mute", express.urlencoded({ extended: true }), (req, res) => {
+app.post("/mute", express.urlencoded({ extended: true }), async (req, res) => {
   if (!req.session.username) {
     return res.redirect("/auth/github");
   }
-  muteNotification(req.session.username, req.body.id);
+  const id = String(req.body.id || "");
+  if (!/^\d+$/.test(id)) {
+    return res.redirect("/dashboard");
+  }
+  await muteNotification(req.session.username, id);
   res.redirect("/dashboard");
 });
-app.post("/unmute-all", (req, res) => {
+
+app.post("/unmute-all", async (req, res) => {
   if (!req.session.username) {
     return res.redirect("/auth/github");
   }
-  unmuteAll(req.session.username);
+  await unmuteAll(req.session.username);
   res.redirect("/dashboard");
 });
+
 app.get("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) console.error("Logout error:", err);
@@ -604,29 +638,21 @@ app.get("/logout", (req, res) => {
 });
 
 app.get("/test-email", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).send("Not found");
+  }
   if (!req.session.username) {
     return res.redirect("/auth/github");
   }
 
-  const user = getUser(req.session.username);
+  const user = await getUser(req.session.username);
   if (!user || !user.email) {
     return res.send("No email saved for this user yet. Save one on /dashboard first.");
   }
 
   try {
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const response = await fetch(
-      `https://api.github.com/notifications?since=${since}&all=true`,
-      {
-        headers: {
-          Authorization: `Bearer ${req.session.token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      }
-    );
-    const notifications = await response.json();
-    const mutedIds = getMutedIds(req.session.username);
+    const notifications = await fetchNotifications(req.session.token);
+    const mutedIds = await getMutedIds(req.session.username);
     const grouped = await buildDigest(notifications, mutedIds);
 
     const result = await sendDigestEmail(user.email, grouped);
@@ -638,24 +664,13 @@ app.get("/test-email", async (req, res) => {
 });
 
 async function sendAllDigests() {
-  const users = getAllUsers();
+  const users = await getAllUsers();
   console.log(`Running daily digest job for ${users.length} user(s)...`);
 
   for (const user of users) {
     try {
-      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const response = await fetch(
-        `https://api.github.com/notifications?since=${since}&all=true`,
-        {
-          headers: {
-            Authorization: `Bearer ${user.access_token}`,
-            Accept: "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
-        }
-      );
-      const notifications = await response.json();
-      const mutedIds = getMutedIds(user.github_username);
+      const notifications = await fetchNotifications(user.access_token);
+      const mutedIds = await getMutedIds(user.github_username);
       const grouped = await buildDigest(notifications, mutedIds);
 
       await sendDigestEmail(user.email, grouped);
@@ -667,9 +682,10 @@ async function sendAllDigests() {
 }
 
 // Run the daily digest job every day at 8:00 AM
+// (timezone: set DIGEST_TIMEZONE to an IANA zone name; defaults to UTC, which is what servers run in)
 cron.schedule("0 8 * * *", () => {
   sendAllDigests();
-});
+}, { timezone: process.env.DIGEST_TIMEZONE || "UTC" });
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

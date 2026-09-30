@@ -29,21 +29,48 @@ function categorizeNotification(n) {
   return { level: "LOW", why: "No action needed" };
 }
 
+// Summaries cost an API call each, so remember them. A notification's summary only
+// changes when the notification itself does (its updated_at moves).
+const summaryCache = new Map();
+const CACHE_MAX = 1000;
+const CONCURRENCY = 5;
+
+async function getSummary(n) {
+  const cacheable = n.id && n.updated_at;
+  const key = cacheable ? `${n.id}:${n.updated_at}` : null;
+  if (key && summaryCache.has(key)) return summaryCache.get(key);
+
+  let why;
+  try {
+    why = await summarizeThread(n);
+    if (key) {
+      if (summaryCache.size >= CACHE_MAX) summaryCache.delete(summaryCache.keys().next().value);
+      summaryCache.set(key, why);
+    }
+  } catch (err) {
+    console.error("AI summary failed, falling back:", err.message);
+    why = categorizeNotification(n).why; // fallback to keyword reason (not cached, so it retries next time)
+  }
+  return why;
+}
+
 async function buildDigest(notifications, mutedIds = []) {
   const grouped = { HIGH: [], MEDIUM: [], LOW: [] };
+  const muted = new Set(mutedIds);
+  const visible = notifications.filter((n) => !muted.has(n.id));
 
-  for (const n of notifications) {
-    if (mutedIds.includes(n.id)) continue;
+  // Summarize in small parallel batches instead of one-by-one
+  const items = [];
+  for (let i = 0; i < visible.length; i += CONCURRENCY) {
+    const batch = visible.slice(i, i + CONCURRENCY);
+    const summaries = await Promise.all(batch.map(getSummary));
+    batch.forEach((n, j) => items.push({ n, why: summaries[j] }));
+  }
 
+  for (const { n, why } of items) {
     const { level } = categorizeNotification(n);
-    let why;
-    try {
-      why = await summarizeThread(n);
-    } catch (err) {
-      console.error("AI summary failed, falling back:", err.message);
-      why = categorizeNotification(n).why; // fallback to keyword reason
-    }
-      const daysOld = Math.floor(
+
+    const daysOld = Math.floor(
       (Date.now() - new Date(n.updated_at).getTime()) / (1000 * 60 * 60 * 24)
     );
     const stale = level === "HIGH" && daysOld >= 2;
@@ -72,7 +99,7 @@ function printDigest(grouped) {
     if (grouped[level].length === 0) return;
     console.log(`--- ${level} PRIORITY ---`);
     grouped[level].forEach((item, i) => {
-      console.log(`${i + 1}. ${item.title}`);
+      console.log(`${i + 1}. ${item.title}${item.stale ? `  [waiting ${item.daysOld}d]` : ""}`);
       console.log(`   Repo: ${item.repo}`);
       console.log(`   Why: ${item.why}\n`);
     });

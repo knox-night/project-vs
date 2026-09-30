@@ -1,5 +1,19 @@
+require("dotenv").config();
 const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Sender must be on a domain verified in Resend, or delivery only works to your own address.
+const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 async function sendDigestEmail(toEmail, grouped) {
   const colors = { HIGH: "#f85149", MEDIUM: "#d29922", LOW: "#3fb950" };
@@ -16,8 +30,9 @@ async function sendDigestEmail(toEmail, grouped) {
     hasAny = true;
     html += `<h2 style="color:${colors[level]}">${level} PRIORITY</h2><ul style="list-style:none;padding:0;">`;
     grouped[level].forEach((item) => {
+      const waiting = item.stale ? ` &middot; <b style="color:#f85149;">waiting ${item.daysOld}d</b>` : "";
       html += `<li style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                 <b style="color:#e6edf3;">${item.title}</b> (${item.repo})<br>Why: ${item.why}
+                 <b style="color:#e6edf3;">${escapeHtml(item.title)}</b> (${escapeHtml(item.repo)})${waiting}<br>Why: ${escapeHtml(item.why)}
                </li>`;
     });
     html += "</ul>";
@@ -30,11 +45,16 @@ async function sendDigestEmail(toEmail, grouped) {
   html += "</div>";
 
   const result = await resend.emails.send({
-    from: "onboarding@resend.dev",
+    from: FROM,
     to: toEmail,
     subject: "Your GitHub Digest",
     html: html,
   });
+
+  // Resend returns { data, error } instead of throwing, so surface failures ourselves.
+  if (result.error) {
+    throw new Error(`Resend error: ${result.error.message || JSON.stringify(result.error)}`);
+  }
 
   return result;
 }
