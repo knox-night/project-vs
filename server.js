@@ -231,7 +231,8 @@ app.get("/auth/github", authLimiter, (req, res) => {
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID,
     redirect_uri: `${BASE_URL}/auth/callback`,
-    scope: "read:user notifications",
+        scope: "read:user notifications",
+    prompt: "select_account",
     state,
   });
 
