@@ -7,6 +7,7 @@ function esc(s) {
 const HEAD = `
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a1b24'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%231f4352' stroke-width='2'/%3E%3Cpath d='M16 16 L25.5 10.5 A11 11 0 0 1 25.5 21.5 Z' fill='%23ffd479' opacity='.8'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23ffd479'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
