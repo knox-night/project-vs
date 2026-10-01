@@ -66,161 +66,7 @@ app.use(session({
 app.use(cookieParser(process.env.SESSION_SECRET));
 app.get("/", (req, res) => {
   res.set("Cache-Control", "no-store");
-  const styles = `
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-      * { box-sizing: border-box; }
-      body {
-        font-family: -apple-system, "Segoe UI", sans-serif;
-        background: #10131a;
-        color: #e2e6ee;
-        margin: 0;
-        line-height: 1.6;
-      }
-      .hero {
-        max-width: 640px;
-        margin: 0 auto;
-        padding: 80px 24px 48px;
-        text-align: center;
-      }
-      .badge {
-        display: inline-block;
-        font-size: 12.5px;
-        color: #4fd1c5;
-        border: 1px solid #2a3040;
-        background: #171c25;
-        padding: 4px 12px;
-        border-radius: 20px;
-        margin-bottom: 20px;
-        font-family: "JetBrains Mono", monospace;
-      }
-      h1 {
-        font-family: "JetBrains Mono", monospace;
-        font-weight: 700;
-        font-size: 34px;
-        color: #4fd1c5;
-        letter-spacing: -0.02em;
-        margin: 0 0 14px;
-      }
-      .tagline {
-        color: #8b93a3;
-        font-size: 16.5px;
-        margin: 0 0 30px;
-        max-width: 460px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      a.button {
-        display: inline-block;
-        background: #4fd1c5;
-        color: #0b1512;
-        font-weight: 600;
-        text-decoration: none;
-        padding: 12px 26px;
-        border-radius: 6px;
-        font-size: 15px;
-      }
-      .muted-note {
-        color: #565e6e;
-        font-size: 13px;
-        margin-top: 14px;
-      }
-      .features {
-        max-width: 640px;
-        margin: 0 auto;
-        padding: 20px 24px 70px;
-        display: grid;
-        gap: 14px;
-      }
-      .feature {
-        background: #171c25;
-        border: 1px solid #2a3040;
-        border-radius: 10px;
-        padding: 18px 20px;
-      }
-      .feature b {
-        color: #e2e6ee;
-        font-size: 15px;
-        display: block;
-        margin-bottom: 4px;
-      }
-      .feature span {
-        color: #8b93a3;
-        font-size: 14px;
-      }
-      .pricing {
-        max-width: 640px;
-        margin: 0 auto 60px;
-        padding: 0 24px;
-        text-align: center;
-        color: #565e6e;
-        font-size: 13.5px;
-      }
-    </style>
-  `;
-  if (req.session.token) {
-    res.send(`
-      ${styles}
-      <div class="hero">
-        <div class="badge">GITHUB NOTIFICATIONS, SORTED</div>
-        <h1>Your Digest</h1>
-        <p class="tagline">You're logged in and ready to go.</p>
-        <a class="button" href="/dashboard">View your digest</a>
-        <div class="muted-note">Head to your dashboard to see what needs attention today.</div>
-      </div>
-      <div class="features">
-        <div class="feature">
-          <b>⏳ Know what's waiting on you</b>
-          <span>Reviews and mentions that have sat untouched for 2+ days get flagged automatically.</span>
-        </div>
-        <div class="feature">
-          <b>🎯 Sorted by real priority</b>
-          <span>Review requests and failed builds surface first — passive activity stays out of your way.</span>
-        </div>
-        <div class="feature">
-          <b>🔇 Mute the noise</b>
-          <span>One click to stop seeing a thread you don't care about, permanently.</span>
-        </div>
-        <div class="feature">
-          <b>📬 Delivered daily</b>
-          <span>For now, check your dashboard anytime. Daily email delivery is on the way.</span>
-        </div>
-      </div>
-    `);
-  } else {
-    res.send(`
-      ${styles}
-      <div class="hero">
-        <div class="badge">GITHUB NOTIFICATIONS, SORTED</div>
-        <h1>Stop drowning in GitHub notifications</h1>
-        <p class="tagline">A daily digest that tells you what actually needs your attention today — not just everything that happened.</p>
-        <a class="button" href="/auth/github">Log in with GitHub</a>
-        <div class="muted-note">Free while in early access. No credit card required.</div>
-        <div class="muted-note">Only asks for access to your notifications and basic profile — never your code.</div>
-      </div>
-      <div class="features">
-        <div class="feature">
-          <b>⏳ Know what's waiting on you</b>
-          <span>Reviews and mentions that have sat untouched for 2+ days get flagged automatically — so nothing important slips through.</span>
-        </div>
-        <div class="feature">
-          <b>🎯 Sorted by real priority</b>
-          <span>Review requests and failed builds surface first. Passive activity — comments you're just watching — stays out of your way.</span>
-        </div>
-        <div class="feature">
-          <b>🔇 Mute the noise</b>
-          <span>One click to stop seeing a thread you don't care about, permanently.</span>
-        </div>
-        <div class="feature">
-          <b>📬 Delivered daily</b>
-          <span>For now, check your dashboard anytime. Daily email delivery is on the way.</span>
-        </div>
-      </div>
-      <div class="pricing">
-        Early access: everything is free right now. This is a new project built by one person, so expect rough edges. Feedback is welcome.
-      </div>
-    `);
-  }
+  res.send(ui.landing(!!req.session.token));
 });
 
 // Step 1: Redirect user to GitHub's login page
@@ -328,174 +174,12 @@ async function ensureSession(req, res) {
   return true;
 }
 
-const DASHBOARD_STYLES = `
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #10131a;
-      --surface: #171c25;
-      --surface-2: #1e2430;
-      --border: #2a3040;
-      --text: #e2e6ee;
-      --text-muted: #8b93a3;
-      --brand: #4fd1c5;
-      --high: #ef6461;
-      --medium: #e7b34c;
-      --low: #7fbf7f;
-    }
-    body {
-      font-family: -apple-system, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding: 56px 24px;
-      max-width: 640px;
-      margin: auto;
-      line-height: 1.55;
-    }
-    h1 {
-      font-family: "JetBrains Mono", monospace;
-      font-weight: 700;
-      font-size: 26px;
-      color: var(--brand);
-      letter-spacing: -0.02em;
-      margin: 0 0 4px;
-    }
-    .subtitle {
-      color: var(--text-muted);
-      font-size: 14px;
-      margin: 0 0 28px;
-    }
-    .email-form {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 18px 20px;
-      margin-bottom: 28px;
-    }
-    .email-form form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .email-form input {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 9px 12px;
-      border-radius: 6px;
-      flex: 1 1 200px;
-      min-width: 0;
-      font-size: 14px;
-    }
-    .email-form button {
-      background: var(--brand);
-      color: #0b1512;
-      border: none;
-      padding: 9px 16px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .section-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: var(--text-muted);
-      margin: 28px 0 10px;
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    ul { list-style: none; padding: 0; margin: 0; }
-    li {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--border);
-      border-radius: 8px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-    }
-    li b { color: var(--text); font-weight: 600; }
-    .repo-tag {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 12px;
-      color: var(--text-muted);
-      background: var(--surface-2);
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-left: 6px;
-    }
-    .why {
-      display: block;
-      color: var(--text-muted);
-      font-size: 13.5px;
-      margin-top: 6px;
-    }
-    .empty-state {
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-      padding: 24px;
-      color: var(--text-muted);
-      font-size: 14.5px;
-    }
-    .loading-wrap {
-      text-align: center;
-      padding: 120px 24px;
-    }
-    .spinner {
-      width: 28px;
-      height: 28px;
-      margin: 0 auto 16px;
-      border: 3px solid var(--border);
-      border-top-color: var(--brand);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    .loading-text {
-      color: var(--text-muted);
-      font-size: 14.5px;
-    }
-  </style>
-`;
+const ui = require("./ui.js");
 
 // Step 3a: Serve a lightweight page immediately, which then fetches the real digest in the background
 app.get("/dashboard", async (req, res) => {
   if (!(await ensureSession(req, res))) return;
-
-  res.send(`
-    ${DASHBOARD_STYLES}
-    <div id="content" class="loading-wrap">
-      <div class="spinner"></div>
-      <div class="loading-text">Loading your digest…</div>
-    </div>
-    <script>
-      fetch('/dashboard-data' + window.location.search)
-        .then(function (res) {
-          if (res.redirected) {
-            window.location.href = res.url;
-            return null;
-          }
-          return res.text();
-        })
-        .then(function (html) {
-          if (html !== null) {
-            document.getElementById('content').outerHTML = html;
-          }
-        })
-        .catch(function () {
-          document.getElementById('content').innerHTML =
-            '<p style="color:var(--text-muted);">Something went wrong loading your digest. <a href="/dashboard" style="color:var(--brand);">Try again</a></p>';
-        });
-    </script>
-  `);
+  res.send(ui.dashboardShell(req.session.username));
 });
 
 // Step 3b: Does the actual GitHub fetch + AI summarizing + returns the digest HTML
@@ -508,7 +192,6 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
       notifications = await fetchNotifications(req.session.token);
     } catch (err) {
       if (err.status === 401) {
-        // Token is invalid/expired: clear the stale session and cookie, send them to log in again
         req.session.destroy(() => {});
         res.clearCookie("username");
         return res.redirect("/auth/github");
@@ -517,85 +200,18 @@ app.get("/dashboard-data", dataLimiter, async (req, res) => {
     }
     const mutedIds = await getMutedIds(req.session.username);
     const grouped = await buildDigest(notifications, mutedIds);
-
     const user = await getUser(req.session.username);
-    const currentEmail = escapeHtml(user && user.email ? user.email : "");
-    const mutedCount = mutedIds.length;
 
-    let html = `
-      <div id="content">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div>
-            <h1>Your Digest</h1>
-            <p class="subtitle">GitHub activity from the last 7 days</p>
-          </div>
-          <a href="/logout" style="color:var(--text-muted);font-size:13px;text-decoration:underline;margin-top:6px;">Log out</a>
-        </div>
-        <div class="email-form">
-          <p style="margin:0 0 10px;color:var(--text-muted);font-size:13.5px;">Daily email digest is coming soon. Save your email now and it will switch on when it's ready.</p>
-          
-            <input type="email" name="email" placeholder="your@email.com" value="${currentEmail}" required>
-            <button type="submit">Save email</button>
-          </form>
-          ${req.query.saved ? '<p style="color:var(--low);margin-top:10px;font-size:14px;">Email saved</p>' : ''}
-        </div>
-        ${mutedCount > 0 ? `
-        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:20px;font-size:13.5px;color:var(--text-muted);">
-          <span>${mutedCount} thread${mutedCount === 1 ? '' : 's'} muted</span>
-          <form action="/unmute-all" method="POST">
-            <button type="submit" style="background:none;color:var(--brand);border:none;font-size:13px;cursor:pointer;text-decoration:underline;">Unmute all</button>
-          </form>
-        </div>
-        ` : ''}
-    `;
-
-    const priorityMeta = {
-      HIGH: { label: "High priority", color: "var(--high)" },
-      MEDIUM: { label: "Medium priority", color: "var(--medium)" },
-      LOW: { label: "Low priority", color: "var(--low)" },
-    };
-
-    ["HIGH", "MEDIUM", "LOW"].forEach((level) => {
-      if (grouped[level].length === 0) return;
-      const meta = priorityMeta[level];
-      html += `<div class="section-label"><span class="dot" style="background:${meta.color}"></span>${meta.label}</div><ul>`;
-      grouped[level].forEach((item) => {
-        const staleBadge = item.stale
-          ? `<span style="background:var(--high);color:#1a0f0f;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin-left:6px;">⏳ Waiting ${item.daysOld}d</span>`
-          : "";
-        html += `<li style="border-left-color:${meta.color}">
-                   <b>${escapeHtml(item.title)}</b><span class="repo-tag">${escapeHtml(item.repo)}</span>${staleBadge}
-                   <span class="why">${escapeHtml(item.why)}</span>
-                   <form action="/mute" method="POST" style="margin-top:8px;">
-                     <input type="hidden" name="id" value="${item.id}">
-                     <button type="submit" style="background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border);padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;">Mute</button>
-                   </form>
-                 </li>`;
-      });
-      html += "</ul>";
-    });
-
-    if (notifications.length === 0) {
-      html += `
-        <div class="empty-state">
-          <b style="color:var(--text);display:block;margin-bottom:6px;font-size:15px;">No new activity in the last 7 days</b>
-          <span>Once you get GitHub notifications — review requests, mentions, comments, failed builds — they'll show up here sorted by what actually needs your attention.</span>
-          <br><br>
-          <span>Daily email delivery is coming soon.</span>
-        </div>
-      `;
-    }
-
-    html += "</div>";
-    res.send(html);
+    res.send(ui.digestHtml({
+      grouped,
+      total: notifications.length,
+      email: user && user.email ? user.email : "",
+      saved: !!req.query.saved,
+      mutedCount: mutedIds.length,
+    }));
   } catch (err) {
     console.error(err);
-    res.send(`
-      <div id="content" style="text-align:center;padding:60px 24px;">
-        <p style="font-size:16px;">Something went wrong fetching your digest.</p>
-        <a href="/dashboard" style="color:var(--brand);">Try again</a>
-      </div>
-    `);
+    res.send(ui.errorHtml());
   }
 });
 
