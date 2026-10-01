@@ -3,7 +3,7 @@ const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Sender must be on a domain verified in Resend, or delivery only works to your own address.
-const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
+const FROM = process.env.EMAIL_FROM || "GitHub Digest <digest@githubdigest.space>";
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
