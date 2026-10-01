@@ -257,9 +257,10 @@ app.get("/logout", (req, res) => {
 });
 
 app.get("/test-email", async (req, res) => {
-  if (process.env.NODE_ENV === "production") {
-    return res.status(404).send("Not found");
-  }
+    // TEMP-TEST: re-enable after testing
+  // if (process.env.NODE_ENV === "production") {
+  //   return res.status(404).send("Not found");
+  // }
   if (!req.session.username) {
     return res.redirect("/auth/github");
   }
