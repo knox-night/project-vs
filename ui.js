@@ -137,6 +137,8 @@ fetch('/dashboard-data'+window.location.search).then(function(r){if(r.redirected
 </script>`);
 }
 
+const PAGE_SIZE = 10;
+
 function digestHtml(o) {
   const g = o.grouped;
   const hi = g.HIGH.length, me = g.MEDIUM.length, lo = g.LOW.length;
@@ -145,26 +147,32 @@ function digestHtml(o) {
     : `Nothing urgent. ${me + lo} ${me + lo === 1 ? "thread" : "threads"} to look at when you have time.`;
   const meta = { HIGH: ["high", "Needs you now"], MEDIUM: ["medium", "Worth a look today"], LOW: ["low", "Can wait"] };
   let groups = "";
+  let shown = 0;
   ["HIGH", "MEDIUM", "LOW"].forEach(level => {
     if (!g[level].length) return;
     const m = meta[level];
-    groups += `<section class="group"><h2>${m[1]} <small>${g[level].length}</small></h2><ul class="rows">`;
+    const hideGroup = shown >= PAGE_SIZE;
+    groups += `<section class="group${hideGroup ? " more" : ""}"><h2>${m[1]} <small>${g[level].length}</small></h2><ul class="rows">`;
     g[level].forEach(item => {
-      groups += `<li class="row ${m[0]}"><span class="dot"></span><div><span class="title">${esc(item.title)}</span><span class="repo">${esc(item.repo)}</span>${item.stale ? `<span class="wait">Waiting ${item.daysOld}d</span>` : ""}<p class="why">${esc(item.why)}</p></div><form action="/mute" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Mute</button></form></li>`;
+      const hide = shown >= PAGE_SIZE;
+      shown++;
+      groups += `<li class="row ${m[0]}${hide ? " more" : ""}"><span class="dot"></span><div><span class="title">${esc(item.title)}</span><span class="repo">${esc(item.repo)}</span>${item.stale ? `<span class="wait">Waiting ${item.daysOld}d</span>` : ""}<p class="why">${esc(item.why)}</p></div><form action="/mute" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Mute</button></form></li>`;
     });
     groups += `</ul></section>`;
   });
+  const loadMore = shown > PAGE_SIZE
+    ? `<div class="loadmore"><button class="btn" type="button" onclick="var r=document.querySelectorAll('.row.more');for(var i=0;i<${PAGE_SIZE}&&i<r.length;i++){r[i].classList.remove('more');var s=r[i].closest('.group');if(s)s.classList.remove('more')}if(r.length<=${PAGE_SIZE})this.parentNode.remove()">Load more</button></div>`
+    : "";
   const empty = o.total === 0 ? `<div class="empty"><h2>All quiet</h2><p>When GitHub sends review requests, mentions, comments or failed builds, they appear here sorted by what needs you. Daily email is coming soon.</p></div>` : "";
   const muted = o.mutedCount > 0 ? `<div class="mutedbar"><span>${o.mutedCount} ${o.mutedCount === 1 ? "thread" : "threads"} muted</span><form action="/unmute-all" method="POST"><button class="linkbtn" type="submit">Unmute all</button></form></div>` : "";
   return `<div id="content">
   <h1>Your digest</h1><p class="summary">${summary}</p>
-  ${empty}${groups}${muted}
+  ${empty}${groups}${loadMore}${muted}
   <div class="mailbar"><p>Daily email is coming soon. Save your email now and it switches on when it's ready.</p>
     <form action="/save-email" method="POST"><input type="email" name="email" placeholder="you@example.com" value="${esc(o.email)}" aria-label="Email address" required><button class="btn" type="submit">Save email</button></form>
     ${o.saved ? '<p class="ok">Email saved.</p>' : ""}</div>
 </div>`;
 }
-
 function errorHtml() {
   return `<div id="content" class="err"><h2>We could not fetch your digest.</h2><p style="color:var(--mist)">GitHub may be slow right now.</p><a class="btn" href="/dashboard">Try again</a></div>`;
 }
