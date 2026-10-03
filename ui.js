@@ -83,6 +83,8 @@ h1,h2{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;l
 .mini .beam{animation-duration:2.4s}
 .err{text-align:center;padding:90px 0}
 .err h2{font-size:26px;margin-bottom:10px}
+.row.more,.group.more{display:none}
+.loadmore{text-align:center;margin-top:32px}
 @media(max-width:820px){.hero{grid-template-columns:1fr;padding:32px 0 48px;gap:36px}.pgrid{grid-template-columns:1fr}.row{grid-template-columns:14px 1fr}.row form{grid-column:2}}
 @media(prefers-reduced-motion:reduce){.beam,.blip{animation:none}.blip{opacity:1}.btn{transition:none}}
 </style>`;

@@ -54,18 +54,32 @@ async function getSummary(n) {
   return why;
 }
 
+// Only the most urgent threads get an AI summary (each one costs an API call).
+// The rest get the free keyword text.
+const AI_LIMIT = 20;
+const LEVEL_ORDER = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+
 async function buildDigest(notifications, mutedIds = []) {
   const grouped = { HIGH: [], MEDIUM: [], LOW: [] };
   const muted = new Set(mutedIds);
   const visible = notifications.filter((n) => !muted.has(n.id));
 
+  // Most urgent first, so AI summaries go to the threads that matter most
+  const ordered = visible
+    .map((n) => ({ n, level: categorizeNotification(n).level }))
+    .sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
+
+  const forAI = ordered.slice(0, AI_LIMIT);
+  const rest = ordered.slice(AI_LIMIT);
+
   // Summarize in small parallel batches instead of one-by-one
   const items = [];
-  for (let i = 0; i < visible.length; i += CONCURRENCY) {
-    const batch = visible.slice(i, i + CONCURRENCY);
-    const summaries = await Promise.all(batch.map(getSummary));
-    batch.forEach((n, j) => items.push({ n, why: summaries[j] }));
+  for (let i = 0; i < forAI.length; i += CONCURRENCY) {
+    const batch = forAI.slice(i, i + CONCURRENCY);
+    const summaries = await Promise.all(batch.map((x) => getSummary(x.n)));
+    batch.forEach((x, j) => items.push({ n: x.n, why: summaries[j] }));
   }
+  rest.forEach((x) => items.push({ n: x.n, why: categorizeNotification(x.n).why }));
 
   for (const { n, why } of items) {
     const { level } = categorizeNotification(n);
