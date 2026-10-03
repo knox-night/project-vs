@@ -257,7 +257,7 @@ app.get("/logout", (req, res) => {
 });
 
 app.get("/test-email", async (req, res) => {
-    if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_TEST_EMAIL !== "true") {
     return res.status(404).send("Not found");
   }
   if (!req.session.username) {
