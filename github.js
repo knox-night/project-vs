@@ -9,7 +9,7 @@ async function fetchNotifications(token, days = 7) {
 
   for (let page = 1; page <= MAX_PAGES; page++) {
     const response = await fetch(
-      `https://api.github.com/notifications?since=${since}&all=true&per_page=${PER_PAGE}&page=${page}`,
+      `https://api.github.com/notifications?since=${since}&per_page=${PER_PAGE}&page=${page}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
