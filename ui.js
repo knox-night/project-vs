@@ -59,6 +59,7 @@ h1,h2{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;l
 .wait{display:inline-block;margin-left:8px;color:#2b0a03;background:var(--flare);font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px}
 .why{margin:4px 0 0;color:var(--mist);font-size:15px;max-width:42em}
 .mute{background:none;border:1px solid var(--line);color:var(--mist);padding:6px 14px;border-radius:999px;font:500 13px "Instrument Sans",sans-serif;cursor:pointer}
+.actions{display:flex;gap:8px;align-items:flex-start}
 .mute:hover{color:var(--foam);border-color:var(--mist)}
 /* dashboard */
 .dash{max-width:760px;margin:0 auto;padding:0 24px 80px}
@@ -85,7 +86,7 @@ h1,h2{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;l
 .err h2{font-size:26px;margin-bottom:10px}
 .row.more,.group.more{display:none}
 .loadmore{text-align:center;margin-top:32px}
-@media(max-width:820px){.hero{grid-template-columns:1fr;padding:32px 0 48px;gap:36px}.pgrid{grid-template-columns:1fr}.row{grid-template-columns:14px 1fr}.row form{grid-column:2}}
+@media(max-width:820px){.hero{grid-template-columns:1fr;padding:32px 0 48px;gap:36px}.pgrid{grid-template-columns:1fr}.row{grid-template-columns:14px 1fr}.row .actions{grid-column:2}}
 @media(prefers-reduced-motion:reduce){.beam,.blip{animation:none}.blip{opacity:1}.btn{transition:none}}
 </style>`;
 
@@ -157,7 +158,8 @@ function digestHtml(o) {
       const hide = shown >= PAGE_SIZE;
       shown++;
             groups += `<li class="row ${m[0]}${hide ? " more" : ""}"><span class="dot"></span><div><span class="title">${esc(item.title)}</span><span class="repo">${esc(item.repo)}</span>${item.stale ? `<span class="wait">Waiting ${item.daysOld}d</span>` : ""}<p class="why">${esc(item.why)}</p></div><div class="actions"><form action="/done" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Done</button></form><form action="/mute" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Mute</button></form></div></li>`;
-    groups += `</ul></section>`;
+      });
+            groups += `</ul></section>`;
   });
   const loadMore = shown > PAGE_SIZE
     ? `<div class="loadmore"><button class="btn" type="button" onclick="var r=document.querySelectorAll('.row.more');for(var i=0;i<${PAGE_SIZE}&&i<r.length;i++){r[i].classList.remove('more');var s=r[i].closest('.group');if(s)s.classList.remove('more')}if(r.length<=${PAGE_SIZE})this.parentNode.remove()">Load more</button></div>`
