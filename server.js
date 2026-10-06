@@ -1,5 +1,6 @@
 require("dotenv").config();
 const crypto = require("crypto");
+const { privacyPage } = require('./privacy');
 
 for (const name of ["SESSION_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY"]) {
   if (!process.env[name]) {
@@ -305,6 +306,9 @@ async function sendAllDigests() {
 cron.schedule("0 8 * * *", () => {
   sendAllDigests();
 }, { timezone: process.env.DIGEST_TIMEZONE || "UTC" });
+app.get('/privacy', (req, res) => {
+  res.send(privacyPage);
+});
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
