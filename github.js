@@ -33,5 +33,18 @@ async function fetchNotifications(token, days = 7) {
 
   return all;
 }
+async function markThreadDone(token, id) {
+  const response = await fetch(`https://api.github.com/notifications/threads/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`GitHub API error ${response.status}`);
+  }
+}
 
-module.exports = { fetchNotifications };
+module.exports = { fetchNotifications, markThreadDone };

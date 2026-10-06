@@ -24,7 +24,7 @@ const rateLimit = require("express-rate-limit");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const { buildDigest } = require("./digest.js");
-const { fetchNotifications } = require("./github.js");
+const { fetchNotifications, markThreadDone } = require("./github.js");
 const { sendDigestEmail } = require("./email.js");
 const { saveUser, getUser, saveEmail, getAllUsers, muteNotification, getMutedIds, unmuteAll } = require("./db.js");
 const cron = require("node-cron");
@@ -237,6 +237,17 @@ app.post("/mute", express.urlencoded({ extended: true }), async (req, res) => {
     return res.redirect("/dashboard");
   }
   await muteNotification(req.session.username, id);
+  res.redirect("/dashboard");
+});
+app.post("/done", express.urlencoded({ extended: true }), async (req, res) => {
+  if (!(await ensureSession(req, res))) return;
+  const id = String(req.body.id || "");
+  if (!/^\d+$/.test(id)) return res.redirect("/dashboard");
+  try {
+    await markThreadDone(req.session.token, id);
+  } catch (err) {
+    console.error("Mark done failed:", err.message);
+  }
   res.redirect("/dashboard");
 });
 

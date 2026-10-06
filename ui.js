@@ -156,8 +156,7 @@ function digestHtml(o) {
     g[level].forEach(item => {
       const hide = shown >= PAGE_SIZE;
       shown++;
-      groups += `<li class="row ${m[0]}${hide ? " more" : ""}"><span class="dot"></span><div><span class="title">${esc(item.title)}</span><span class="repo">${esc(item.repo)}</span>${item.stale ? `<span class="wait">Waiting ${item.daysOld}d</span>` : ""}<p class="why">${esc(item.why)}</p></div><form action="/mute" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Mute</button></form></li>`;
-    });
+            groups += `<li class="row ${m[0]}${hide ? " more" : ""}"><span class="dot"></span><div><span class="title">${esc(item.title)}</span><span class="repo">${esc(item.repo)}</span>${item.stale ? `<span class="wait">Waiting ${item.daysOld}d</span>` : ""}<p class="why">${esc(item.why)}</p></div><div class="actions"><form action="/done" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Done</button></form><form action="/mute" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Mute</button></form></div></li>`;
     groups += `</ul></section>`;
   });
   const loadMore = shown > PAGE_SIZE
