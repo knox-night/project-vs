@@ -1,4 +1,5 @@
 // All page looks live here. server.js just calls these functions.
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "sigmaboy789265@gmail.com";
 function esc(s) {
   if (s === null || s === undefined) return "";
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -47,6 +48,39 @@ h1,h2{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;l
 .pgrid h3{font-size:17px;margin:0 0 6px;font-weight:600}
 .pgrid p{margin:0;color:var(--mist);max-width:28em}
 .foot{border-top:1px solid var(--line);padding:28px 0 56px;color:var(--mist);font-size:13.5px}
+.foot nav{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:12px}
+.foot a{color:var(--lamp)}
+/* sample dashboard */
+.mock{border:1px solid var(--line);border-radius:18px;background:var(--panel);overflow:hidden}
+.mockbar{display:flex;justify-content:space-between;gap:4px 16px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel2);font-size:14px;color:var(--mist)}
+.mockbar strong{color:var(--foam);font-weight:600}
+.mock .group{margin:0;padding:4px 20px 0;opacity:.9}
+.mock .group h2{font-size:17px;padding-top:10px}
+.mock .group .rows{border-top:0;margin-top:0}
+.mock .row{padding:14px 0}
+.mockbar a{color:var(--lamp)}
+.badge{display:inline-block;margin-right:10px;background:var(--panel);border:1px solid var(--line);color:var(--lamp);font-size:12px;font-weight:600;padding:1px 9px;border-radius:999px}
+.mock .group:last-child .row:last-child{border-bottom:0}
+.mock .mute{display:inline-block;pointer-events:none}
+/* comparison */
+.vs{border-top:1px solid var(--line);padding:56px 0}
+.vs h2,.data h2{font-size:30px;margin-bottom:10px}
+.sub{color:var(--mist);max-width:36em;margin:0 0 28px}
+.sub a{color:var(--lamp)}
+.vstable{overflow-x:auto;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+.vs table{width:100%;border-collapse:collapse;min-width:540px}
+.vs th,.vs td{text-align:left;padding:14px 18px;border-top:1px solid var(--line);font-size:15px;vertical-align:top}
+.vs thead th{border-top:0;background:var(--panel2);font-weight:600}
+.vs thead th:last-child{color:var(--lamp)}
+.vs tbody th{font-weight:600;white-space:nowrap}
+.vs td{color:var(--mist)}
+.vs td:last-child{color:var(--foam)}
+/* permissions and data */
+.data{border-top:1px solid var(--line);padding:56px 0 40px}
+.facts{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:28px 56px}
+.facts dt{font-weight:600;font-size:17px;margin:0 0 6px}
+.facts dd{margin:0;color:var(--mist);max-width:30em}
+.facts code{background:var(--panel2);padding:1px 6px;border-radius:6px;font-size:.88em;color:var(--foam)}
 /* digest rows */
 .rows{list-style:none;margin:0;padding:0}
 .row{display:grid;grid-template-columns:14px 1fr auto;gap:16px;padding:18px 0;border-bottom:1px solid var(--line)}
@@ -86,7 +120,7 @@ h1,h2{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;l
 .err h2{font-size:26px;margin-bottom:10px}
 .row.more,.group.more{display:none}
 .loadmore{text-align:center;margin-top:32px}
-@media(max-width:820px){.hero{grid-template-columns:1fr;padding:32px 0 48px;gap:36px}.pgrid{grid-template-columns:1fr}.row{grid-template-columns:14px 1fr}.row .actions{grid-column:2}}
+@media(max-width:820px){.hero{grid-template-columns:1fr;padding:32px 0 48px;gap:36px}.pgrid,.facts{grid-template-columns:1fr}.row{grid-template-columns:14px 1fr}.row .actions{grid-column:2}}
 @media(prefers-reduced-motion:reduce){.beam,.blip{animation:none}.blip{opacity:1}.btn{transition:none}}
 </style>`;
 
@@ -100,11 +134,24 @@ function landing(loggedIn) {
   const cta = loggedIn
     ? `<a class="btn" href="/dashboard">Open your digest</a><p class="fine">You're signed in.</p>`
     : `<a class="btn" href="/auth/github">Log in with GitHub</a><p class="fine">Free during early access. We only ask to read your notifications and basic profile, never your code.</p>`;
-  const sampleRows = [
-    ["high", "Review requested: Fix login redirect", "acme/web", "Someone is waiting for your review.", "Waiting 3d"],
-    ["medium", "CI failed on feature/billing", "acme/api", "A build you started did not pass.", ""],
-    ["low", "New comment on Update README", "acme/docs", "A thread you follow has activity. Nothing is asked of you.", ""],
-  ].map(r => `<li class="row ${r[0]}"><span class="dot"></span><div><span class="title">${r[1]}</span><span class="repo">${r[2]}</span>${r[4] ? `<span class="wait">${r[4]}</span>` : ""}<p class="why">${r[3]}</p></div></li>`).join("");
+  // Sample digest. Summaries only say what the summarizer can really know (title, type, reason, repo).
+  const mockGroups = [
+    ["high", "Needs you now", [
+      ["Review requested: Fix login redirect", "acme/web", "You were asked to review this pull request. Check the login redirect change.", "Waiting 3d"],
+      ["CI failed on feature/billing", "acme/api", "A check failed on the billing branch. Open the run to see what broke, then fix or re-run it.", ""],
+    ]],
+    ["medium", "Worth a look today", [
+      ["Mentioned in Rate limit headers", "acme/api", "You were mentioned in this issue. No direct question is asked of you.", ""],
+    ]],
+    ["low", "Can wait", [
+      ["New comment on Update README", "acme/docs", "A thread you follow has activity. Nothing is asked of you.", ""],
+    ]],
+  ];
+  const mockRows = mockGroups.map(([cls, label, items]) =>
+    `<section class="group"><h2>${label} <small>${items.length}</small></h2><ul class="rows">` +
+    items.map(i => `<li class="row ${cls}"><span class="dot"></span><div><span class="title">${i[0]}</span><span class="repo">${i[1]}</span>${i[3] ? `<span class="wait">${i[3]}</span>` : ""}<p class="why">${i[2]}</p></div><div class="actions"><span class="mute">Done</span><span class="mute">Mute</span></div></li>`).join("") +
+    `</ul></section>`
+  ).join("");
   return page("GitHub Digest: the signal in your notifications", `
 <div class="wrap">
   <header class="top"><a class="brand" href="/">${LOGO}GitHub Digest</a>${loggedIn ? '<a class="toplink" href="/logout">Log out</a>' : '<a class="toplink" href="/auth/github">Log in</a>'}</header>
@@ -116,14 +163,32 @@ function landing(loggedIn) {
     </div>
     <div class="scene" role="img" aria-label="A lighthouse beam sweeping across three notifications"><div class="beam"></div><span class="blip b1"></span><span class="blip b2"></span><span class="blip b3"></span><span class="lamp"></span></div>
   </section>
-  <section class="sample"><h2>What your morning looks like</h2><ul class="rows">${sampleRows}</ul></section>
+  <section class="sample"><h2>What your morning looks like</h2><div class="mock" role="group" aria-label="Sample digest, not real data"><div class="mockbar"><span><span class="badge">Example</span><strong>A sample digest, not real data</strong></span>${loggedIn ? '<a href="/dashboard">Open yours</a>' : '<a href="/auth/github">Log in to see yours</a>'}</div>${mockRows}</div></section>
   <section class="points"><h2>Built to cut the noise</h2><div class="pgrid">
     <div><h3>See what is waiting on you</h3><p>Reviews and mentions that sit untouched for 2 days or more get flagged.</p></div>
     <div><h3>Sorted by real priority</h3><p>Review requests and failed builds rise to the top. Passive activity stays out of the way.</p></div>
     <div><h3>Plain-English summaries</h3><p>Each thread gets a short note on what it is actually asking of you.</p></div>
     <div><h3>Mute a thread for good</h3><p>One click and a thread you don't care about stops showing up. Unmute all whenever you like.</p></div>
   </div></section>
-  <footer class="foot">Early access. Everything is free while this grows. Built by one person, so expect rough edges, and feedback is welcome.</footer>
+  <section class="vs"><h2>Why not GitHub's own inbox?</h2><p class="sub">GitHub's inbox lists activity as it happens. GitHub Digest works out what is waiting on you and puts that first.</p>
+    <div class="vstable"><table>
+      <thead><tr><th scope="col"><span class="sr" style="position:absolute;left:-9999px">Feature</span></th><th scope="col">GitHub inbox</th><th scope="col">GitHub Digest</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Order</th><td>Newest activity first, plus filters you set up yourself</td><td>Review requests, questions and failed builds first</td></tr>
+        <tr><th scope="row">Left waiting</th><td>No flag for threads that sit untouched</td><td>Flagged after 2 days</td></tr>
+        <tr><th scope="row">What a thread wants</th><td>Open it to find out</td><td>A plain-English note on your most urgent threads</td></tr>
+        <tr><th scope="row">Noise</th><td>Unsubscribe or mark done one thread at a time</td><td>Mute a thread, unmute everything in one click</td></tr>
+      </tbody>
+    </table></div></section>
+  <section class="data"><h2>What we access and what we keep</h2><p class="sub">You log in with GitHub OAuth. Here is what happens with that access. The full policy is on the <a href="/privacy">privacy page</a>.</p>
+    <dl class="facts">
+      <div><dt>Permissions</dt><dd><code>read:user</code> for your username and <code>notifications</code> to read your notification list. The Done button uses it to mark a thread done on GitHub. We never ask for repository access, so your code stays out of reach.</dd></div>
+      <div><dt>AI summaries</dt><dd>For your most urgent threads (up to 20), the title, type, reason and repo name go to Google Gemini. Never thread contents, your token or your email.</dd></div>
+      <div><dt>What we store</dt><dd>Your GitHub username, your access token (encrypted), the IDs of threads you mute, and your email if you save one. Notifications are fetched live and their content is not kept in our database.</dd></div>
+      <div><dt>Leaving</dt><dd>Revoke access any time in GitHub under Settings, Applications. To delete what we store, email us and it is removed.</dd></div>
+    </dl></section>
+  <footer class="foot">Early access. Everything is free while this grows. Built by one person, so expect rough edges, and feedback is welcome.
+    <nav aria-label="Footer"><a href="mailto:${esc(CONTACT_EMAIL)}">Email feedback</a><a href="/privacy">Privacy</a></nav></footer>
 </div>`);
 }
 
