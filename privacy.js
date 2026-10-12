@@ -1,3 +1,5 @@
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "sigmaboy789265@gmail.com";
+
 const privacyPage = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,13 +18,13 @@ const privacyPage = `<!DOCTYPE html>
 <p>GitHub Digest (githubdigest.space) is a small independent project built by one person. This page explains what data it uses and why.</p>
 
 <h2>What we collect</h2>
-<p>When you log in with GitHub, we store your GitHub username and an access token that lets us read your notifications. The token is encrypted in our database. If you choose to save an email address, we store that too.</p>
+<p>When you log in with GitHub, we store your GitHub username and an access token that lets us read your notifications. The token is encrypted in our database. We also store the IDs of threads you mute, so they stay hidden, and your email address if you choose to save one. Your notifications are read live from GitHub and their content is not kept in our database.</p>
 
 <h2>How we use it</h2>
-<p>We use your token to fetch your GitHub notifications and show them on your dashboard. If you saved an email, we send you a daily digest. We do not sell your data or use it for advertising.</p>
+<p>We use your token to fetch your GitHub notifications and show them on your dashboard. When you click Done on a thread, we use the token to mark that thread done on GitHub. If you saved an email, we send you a daily digest. We do not sell your data or use it for advertising.</p>
 
 <h2>AI summaries</h2>
-<p>To write short summaries, the title, type, reason and repository name of some of your notifications are sent to Google's Gemini API. We do not send your token or your email to Gemini.</p>
+<p>To write short summaries, the title, type, reason and repository name of up to 20 of your most urgent notifications are sent to Google's Gemini API. We do not send the contents of threads, your token or your email to Gemini.</p>
 
 <h2>Services we use</h2>
 <p>Render (hosting), Turso (database), Resend (sending emails), Google Gemini (AI summaries) and GitHub (login). Each of them processes data on our behalf.</p>
@@ -31,10 +33,10 @@ const privacyPage = `<!DOCTYPE html>
 <p>We use a session cookie and a cookie that keeps you logged in for 30 days. We do not use tracking or advertising cookies.</p>
 
 <h2>Deleting your data</h2>
-<p>You can revoke access any time at GitHub: Settings, Applications, Authorized OAuth Apps. To delete your stored data (username, token, email), email me at YOUR_EMAIL_HERE and I will remove it.</p>
+<p>You can revoke access any time at GitHub: Settings, Applications, Authorized OAuth Apps. To delete your stored data (username, token, email), email me at <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a> and I will remove it.</p>
 
 <h2>Contact</h2>
-<p>Questions? sigmaboy789265@gmail.com .</p>
+<p>Questions? <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>
 
 <p><a href="/">Back to home</a></p>
 </body>

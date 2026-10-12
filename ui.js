@@ -195,7 +195,7 @@ function landing(loggedIn) {
 function dashboardShell(username) {
   return page("Your digest", `
 <div class="dash">
-  <header class="top" style="padding-left:0;padding-right:0"><a class="brand" href="/">${LOGO}GitHub Digest</a><span><span class="toplink" style="margin-right:14px">${esc(username)}</span><a class="toplink" href="/logout">Log out</a></span></header>
+  <header class="top" style="padding-left:0;padding-right:0"><a class="brand" href="/">${LOGO}GitHub Digest</a><span><span class="toplink" style="margin-right:14px">${esc(username)}</span><a class="toplink" style="margin-right:14px" href="mailto:sigmaboy789265@gmail.com?subject=GitHub%20Digest%20feedback">Feedback</a><a class="toplink" href="/logout">Log out</a></span></header>
   <div id="content" class="loading"><div class="mini"><div class="beam"></div><span class="lamp"></span></div>Sweeping your notifications…</div>
 </div>
 <script>
