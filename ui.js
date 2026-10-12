@@ -188,14 +188,14 @@ function landing(loggedIn) {
       <div><dt>Leaving</dt><dd>Revoke access any time in GitHub under Settings, Applications. To delete what we store, email us and it is removed.</dd></div>
     </dl></section>
   <footer class="foot">Early access. Everything is free while this grows. Built by one person, so expect rough edges, and feedback is welcome.
-    <nav aria-label="Footer"><a href="mailto:${esc(CONTACT_EMAIL)}">Email feedback</a><a href="/privacy">Privacy</a></nav></footer>
+<nav aria-label="Footer"><a target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&fs=1&to=${esc(CONTACT_EMAIL)}&su=GitHub%20Digest%20feedback">Email feedback</a><a href="/privacy">Privacy</a></nav></footer>
 </div>`);
 }
 
 function dashboardShell(username) {
   return page("Your digest", `
 <div class="dash">
-  <header class="top" style="padding-left:0;padding-right:0"><a class="brand" href="/">${LOGO}GitHub Digest</a><span><span class="toplink" style="margin-right:14px">${esc(username)}</span><a class="toplink" style="margin-right:14px" href="mailto:sigmaboy789265@gmail.com?subject=GitHub%20Digest%20feedback">Feedback</a><a class="toplink" href="/logout">Log out</a></span></header>
+  <header class="top" style="padding-left:0;padding-right:0"><a class="brand" href="/">${LOGO}GitHub Digest</a><span><span class="toplink" style="margin-right:14px">${esc(username)}</span><a class="toplink" style="margin-right:14px" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&fs=1&to=${esc(CONTACT_EMAIL)}&su=GitHub%20Digest%20feedback">Feedback</a><a class="toplink" href="/logout">Log out</a></span></header>
   <div id="content" class="loading"><div class="mini"><div class="beam"></div><span class="lamp"></span></div>Sweeping your notifications…</div>
 </div>
 <script>
