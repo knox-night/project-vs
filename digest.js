@@ -26,7 +26,15 @@ function categorizeNotification(n) {
   }
 
   // Low urgency: informational only
-  return { level: "LOW", why: "No action needed" };
+    // Low urgency: informational only
+  const reasonText = {
+    subscribed: "You're subscribed to this repo",
+    state_change: "The status of a thread you follow changed",
+    author: "Someone replied to something you opened",
+    team_mention: "Your team was mentioned",
+    manual: "You chose to follow this thread",
+  };
+  return { level: "LOW", why: reasonText[reason] || "You're following this thread" };
 }
 
 // Summaries cost an API call each, so remember them. A notification's summary only
