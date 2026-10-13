@@ -92,6 +92,7 @@ h1,h2{font-family:Fraunces,Georgia,serif;font-weight:700;letter-spacing:-.02em;l
 .repo{display:inline-block;margin-left:8px;color:var(--mist);font-size:13px;background:var(--panel2);padding:1px 8px;border-radius:999px}
 .wait{display:inline-block;margin-left:8px;color:#2b0a03;background:var(--flare);font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px}
 .why{margin:4px 0 0;color:var(--mist);font-size:15px;max-width:42em}
+.reason{margin:6px 0 0;font-size:13px;color:var(--lamp);opacity:.85}
 .mute{background:none;border:1px solid var(--line);color:var(--mist);padding:6px 14px;border-radius:999px;font:500 13px "Instrument Sans",sans-serif;cursor:pointer}
 .actions{display:flex;gap:8px;align-items:flex-start}
 .mute:hover{color:var(--foam);border-color:var(--mist)}
@@ -222,7 +223,7 @@ function digestHtml(o) {
     g[level].forEach(item => {
       const hide = shown >= PAGE_SIZE;
       shown++;
-            groups += `<li class="row ${m[0]}${hide ? " more" : ""}"><span class="dot"></span><div><span class="title">${esc(item.title)}</span><span class="repo">${esc(item.repo)}</span>${item.stale ? `<span class="wait">Waiting ${item.daysOld}d</span>` : ""}<p class="why">${esc(item.why)}</p></div><div class="actions"><form action="/done" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Done</button></form><form action="/mute" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Mute</button></form></div></li>`;
+            groups += `<li class="row ${m[0]}${hide ? " more" : ""}"><span class="dot"></span><div><span class="title">${esc(item.title)}</span><span class="repo">${esc(item.repo)}</span>${item.stale ? `<span class="wait">Waiting ${item.daysOld}d</span>` : ""}<p class="why">${esc(item.why)}</p><p class="reason">Why it's here: ${esc(item.reason)}</p></div><div class="actions"><form action="/done" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Done</button></form><form action="/mute" method="POST"><input type="hidden" name="id" value="${esc(item.id)}"><button class="mute" type="submit">Mute</button></form></div></li>`;
       });
             groups += `</ul></section>`;
   });

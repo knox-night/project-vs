@@ -82,7 +82,7 @@ async function buildDigest(notifications, mutedIds = []) {
   rest.forEach((x) => items.push({ n: x.n, why: categorizeNotification(x.n).why }));
 
   for (const { n, why } of items) {
-    const { level } = categorizeNotification(n);
+    const { level, why: reasonText } = categorizeNotification(n);
 
     const daysOld = Math.floor(
       (Date.now() - new Date(n.updated_at).getTime()) / (1000 * 60 * 60 * 24)
@@ -94,6 +94,7 @@ async function buildDigest(notifications, mutedIds = []) {
       title: n.subject.title,
       repo: n.repository.full_name,
       why,
+      reason: reasonText,
       stale,
       daysOld,
     });
